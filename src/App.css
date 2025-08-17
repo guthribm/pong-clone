@@ -1,0 +1,237 @@
+:root {
+  /* neon-retro palette */
+  --bg: #030014; /* very dark */
+  --panel: #060016;
+  --neon-cyan: #00f7ff;
+  --neon-magenta: #ff4db8;
+  --neon-yellow: #fff25c;
+  --muted: #9fb1c5;
+  --text: #e8faff; /* high contrast */
+  --glass: rgba(255, 255, 255, 0.03);
+  --card-shadow: 0 12px 48px rgba(2, 8, 23, 0.7);
+}
+
+/* App shell */
+.app {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial;
+  color: var(--text);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* center vertically */
+  gap: 12px;
+  min-height: 100vh;
+  background: radial-gradient(
+      800px 400px at 10% 10%,
+      rgba(0, 87, 120, 0.08),
+      transparent 10%
+    ),
+    linear-gradient(180deg, var(--bg), #040814 120%);
+}
+
+.app h1 {
+  margin: 0;
+  letter-spacing: 1px;
+  color: var(--neon-magenta);
+  text-shadow: 0 6px 18px rgba(255, 77, 184, 0.18), 0 2px 0 rgba(0, 0, 0, 0.6);
+  font-size: clamp(1.2rem, 3.2vw, 2rem);
+}
+
+/* controls layout */
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: min(100%, 980px);
+  justify-content: space-between;
+}
+
+.difficulty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.difficulty label {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+.buttons button {
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.5),
+    rgba(255, 255, 255, 0.02)
+  );
+  color: var(--neon-cyan);
+  font-weight: 700;
+  box-shadow: 0 6px 30px rgba(0, 255, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, color 120ms ease;
+}
+.buttons button:hover {
+  transform: translateY(-2px);
+  color: var(--neon-yellow);
+  box-shadow: 0 16px 48px rgba(255, 77, 184, 0.06);
+}
+
+/* responsive canvas wrapper - centers and keeps aspect */
+.canvas-wrap {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+  max-width: 1000px;
+  aspect-ratio: 16/9;
+  background: linear-gradient(180deg, rgba(6, 0, 24, 0.6), rgba(2, 0, 10, 0.9));
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 77, 120, 0.12), 0 8px 30px rgba(2, 8, 23, 0.6);
+  display: block;
+  border: 1px solid rgba(255, 77, 184, 0.06);
+}
+
+.legend {
+  width: min(100%, 980px);
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+/* Scoreboard */
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 10px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(0, 0, 0, 0.06)
+  );
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+.score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+}
+.score .label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.score .value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.score-sep {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* Palette selector */
+.palette {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.palette-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.palette-toggle {
+  display: flex;
+  gap: 6px;
+}
+.palette-toggle button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.palette-toggle button.active {
+  color: var(--text);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  transform: translateY(-2px);
+}
+
+/* Theme overrides */
+.theme-neon {
+  --neon-cyan: #00f7ff;
+  --neon-magenta: #ff4db8;
+  --neon-yellow: #fff25c;
+}
+.theme-amber {
+  --neon-cyan: #ffd86b;
+  --neon-magenta: #ffb86b;
+  --neon-yellow: #ffe9a6;
+}
+.theme-green {
+  --neon-cyan: #9effa6;
+  --neon-magenta: #4df2a6;
+  --neon-yellow: #caffd4;
+}
+
+/* Apply theme to scoreboard accents */
+.theme-neon .score .value {
+  color: var(--neon-cyan);
+}
+.theme-amber .score .value {
+  color: var(--neon-cyan);
+}
+.theme-green .score .value {
+  color: var(--neon-cyan);
+}
+
+/* mobile: encourage landscape for gameplay and reflow controls */
+@media (max-width: 720px) {
+  .app {
+    padding: 12px;
+  }
+  .controls {
+    flex-direction: row;
+    gap: 10px;
+  }
+  .legend {
+    font-size: 0.9rem;
+  }
+  /* If device is portrait but small, show a hint and rotate the canvas visually */
+  @media (orientation: portrait) {
+    .legend::after {
+      content: " — best in landscape";
+      color: var(--accent);
+      margin-left: 8px;
+    }
+  }
+}
+
+/* small tweaks for very small screens */
+@media (max-width: 420px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .buttons {
+    justify-content: space-between;
+  }
+}
