@@ -2,12 +2,33 @@ import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import type { Ball, Paddle, Difficulty } from "./game";
 import { clamp, resetBall, bumpSpeed, updateAI } from "./game";
+// MUI components
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+// import Button from '@mui/material/Button'
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Box from "@mui/material/Box";
+import MenuIcon from "@mui/icons-material/Menu";
+import PlayArrow from "@mui/icons-material/PlayArrow";
+import Pause from "@mui/icons-material/Pause";
+import RestartAlt from "@mui/icons-material/RestartAlt";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme as useMuiTheme } from "@mui/material/styles";
 
 const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 500;
 
 /** Main React component: renders UI and drives the game loop. */
 export default function App() {
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
   // Canvas refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -435,94 +456,95 @@ export default function App() {
   }
 
   return (
-    <div className={`app theme-${theme}`}>
-      <h1>Pong Clone</h1>
-      <div className="controls">
-        <div className="difficulty">
-          <label>
-            <input
-              type="radio"
-              name="diff"
-              checked={difficulty === "Easy"}
-              onChange={() => setDifficulty("Easy")}
-            />{" "}
-            Easy
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="diff"
-              checked={difficulty === "Normal"}
-              onChange={() => setDifficulty("Normal")}
-            />{" "}
-            Normal
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="diff"
-              checked={difficulty === "Hard"}
-              onChange={() => setDifficulty("Hard")}
-            />{" "}
-            Hard
-          </label>
-        </div>
+    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+      <AppBar position="static" color="transparent" elevation={0}>
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            sx={{ mr: 2 }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Pong Clone
+          </Typography>
 
-        <div className="buttons">
-          <button onClick={() => (running ? stop() : start())}>
-            {running ? "Pause" : "Start"}
-          </button>
-          <button
+          <FormControl variant="standard" sx={{ minWidth: 120, mr: 2 }}>
+            <InputLabel id="difficulty-label">Difficulty</InputLabel>
+            <Select
+              labelId="difficulty-label"
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+              label="Difficulty"
+            >
+              <MenuItem value={"Easy"}>Easy</MenuItem>
+              <MenuItem value={"Normal"}>Normal</MenuItem>
+              <MenuItem value={"Hard"}>Hard</MenuItem>
+            </Select>
+          </FormControl>
+
+          <ToggleButtonGroup
+            value={theme}
+            exclusive
+            onChange={(_, val) => val && setTheme(val)}
+            size="small"
+            sx={{ mr: 2 }}
+          >
+            <ToggleButton value="neon">Neon</ToggleButton>
+            <ToggleButton value="amber">Amber</ToggleButton>
+            <ToggleButton value="green">Green</ToggleButton>
+          </ToggleButtonGroup>
+
+          <IconButton
+            color="inherit"
+            onClick={() => (running ? stop() : start())}
+            aria-label="play-pause"
+          >
+            {running ? <Pause /> : <PlayArrow />}
+          </IconButton>
+          <IconButton
+            color="inherit"
             onClick={() => {
               restart();
               if (!running) draw();
             }}
+            aria-label="restart"
           >
-            Restart
-          </button>
-        </div>
+            <RestartAlt />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
 
-        <div className="palette">
-          <label className="palette-label">Theme</label>
-          <div
-            className="palette-toggle"
-            role="radiogroup"
-            aria-label="Color theme"
-          >
-            <button
-              className={theme === "neon" ? "active" : ""}
-              onClick={() => setTheme("neon")}
-              aria-pressed={theme === "neon"}
-            >
-              Neon
-            </button>
-            <button
-              className={theme === "amber" ? "active" : ""}
-              onClick={() => setTheme("amber")}
-              aria-pressed={theme === "amber"}
-            >
-              Amber
-            </button>
-            <button
-              className={theme === "green" ? "active" : ""}
-              onClick={() => setTheme("green")}
-              aria-pressed={theme === "green"}
-            >
-              Green
-            </button>
+      {/* Mobile rotate forced layout overlay */}
+      {isMobile && (
+        <div className="mobile-rotate-overlay" role="note">
+          <div className="rotate-inner">
+            Rotate your device to landscape for best play
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="canvas-wrap">
-        {/* scoreboard removed - canvas displays scores now */}
-        <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
-      </div>
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 1,
+        }}
+      >
+        <div className={`canvas-wrap`}>
+          <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
+        </div>
+      </Box>
 
-      <div className="legend">
-        <div>Controls: W / S or ArrowUp / ArrowDown</div>
-        <div>First to any score — use Restart to reset the match.</div>
-      </div>
-    </div>
+      <Box component="footer" sx={{ p: 1, textAlign: "center" }}>
+        <Typography variant="caption">
+          Controls: W / S or ArrowUp / ArrowDown — Restart to reset the match.
+        </Typography>
+      </Box>
+    </Box>
   );
 }
