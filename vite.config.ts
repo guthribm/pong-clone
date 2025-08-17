@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
 // Use a fallback of '/' when VITE_BASE isn't provided.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const meta: any = import.meta;
-const base = (meta.env && meta.env.VITE_BASE) || '/';
+const base = "/";
 
 export default defineConfig({
   plugins: [react()],
