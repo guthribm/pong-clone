@@ -61,11 +61,13 @@ export function updateAI(
   let react = 1;
 
   if (diff === "Easy") {
-    maxSpeed = 240;
-    react = 0.04;
+    // make Easy significantly slower and less reactive
+    maxSpeed = 180;
+    react = 0.03;
   } else if (diff === "Normal") {
-    maxSpeed = 420;
-    react = 0.12;
+    // make Normal slightly easier than before
+    maxSpeed = 360;
+    react = 0.08;
   } else if (diff === "Hard") {
     maxSpeed = 720;
     if (b.vx > 0) {

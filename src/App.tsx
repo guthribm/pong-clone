@@ -29,6 +29,9 @@ const CANVAS_HEIGHT = 500;
 export default function App() {
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const isSmallLandscape = useMediaQuery(
+    "(max-width:720px) and (orientation: landscape)"
+  );
   // Canvas refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -39,6 +42,9 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<Difficulty>("Normal");
   const scoreLeftRef = useRef(0);
   const scoreRightRef = useRef(0);
+  // score animation timestamps (seconds since epoch) or 0 when idle
+  const scoreAnimLeftRef = useRef(0);
+  const scoreAnimRightRef = useRef(0);
   // particles and trail for visual effects
   type Particle = {
     x: number;
@@ -242,6 +248,7 @@ export default function App() {
     // scoring (use refs + state so draw sees latest immediately)
     if (b.x < 0) {
       scoreRightRef.current += 1;
+      scoreAnimRightRef.current = performance.now() / 1000;
       // spawn particles at ball
       spawnScoreParticles(b.x, b.y);
       resetBall(b, CANVAS_WIDTH, CANVAS_HEIGHT, false);
@@ -249,6 +256,7 @@ export default function App() {
       requestAnimationFrame(() => draw());
     } else if (b.x > CANVAS_WIDTH) {
       scoreLeftRef.current += 1;
+      scoreAnimLeftRef.current = performance.now() / 1000;
       spawnScoreParticles(b.x, b.y);
       resetBall(b, CANVAS_WIDTH, CANVAS_HEIGHT, true);
       draw();
@@ -319,11 +327,36 @@ export default function App() {
     drawParticles(ctx);
 
     // scores (small and subtle now)
+    // scores (small and subtle now) with pop animation
     ctx.fillStyle = themeColors.text;
-    ctx.font = "28px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText(String(scoreLeftRef.current), CANVAS_WIDTH * 0.25, 46);
-    ctx.fillText(String(scoreRightRef.current), CANVAS_WIDTH * 0.75, 46);
+    const now = performance.now() / 1000;
+    const drawAnimatedScore = (value: number, x: number, animT: number) => {
+      const age = animT ? now - animT : 1000;
+      let scale = 1;
+      if (age < 0.9) {
+        // simple easing: pop quickly then settle
+        const t = age / 0.9;
+        scale = 1 + Math.sin(Math.min(1, t) * Math.PI) * (1 - t) * 0.9;
+      }
+      const fontSize = Math.round(28 * scale);
+      ctx.font = `${fontSize}px system-ui`;
+      ctx.save();
+      ctx.translate(x, 46);
+      ctx.scale(1, 1);
+      ctx.fillText(String(value), 0, 0);
+      ctx.restore();
+    };
+    drawAnimatedScore(
+      scoreLeftRef.current,
+      CANVAS_WIDTH * 0.25,
+      scoreAnimLeftRef.current
+    );
+    drawAnimatedScore(
+      scoreRightRef.current,
+      CANVAS_WIDTH * 0.75,
+      scoreAnimRightRef.current
+    );
   }
 
   // --- Theme color mapping ------------------------------------------------
@@ -517,8 +550,8 @@ export default function App() {
         </Toolbar>
       </AppBar>
 
-      {/* Mobile rotate forced layout overlay */}
-      {isMobile && (
+      {/* Mobile rotate forced layout overlay (only when not in small landscape) */}
+      {isMobile && !isSmallLandscape && (
         <div className="mobile-rotate-overlay" role="note">
           <div className="rotate-inner">
             Rotate your device to landscape for best play
@@ -535,16 +568,77 @@ export default function App() {
           p: 1,
         }}
       >
-        <div className={`canvas-wrap`}>
+        <div
+          className={`canvas-wrap ${isSmallLandscape ? "landscape-fit" : ""}`}
+        >
           <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
         </div>
       </Box>
 
-      <Box component="footer" sx={{ p: 1, textAlign: "center" }}>
-        <Typography variant="caption">
-          Controls: W / S or ArrowUp / ArrowDown — Restart to reset the match.
-        </Typography>
-      </Box>
+      {/* Bottom controls for small landscape: compact, touch-friendly */}
+      {isSmallLandscape ? (
+        <Box
+          className="mobile-bottom-controls"
+          sx={{
+            position: "fixed",
+            bottom: 8,
+            left: 8,
+            right: 8,
+            display: "flex",
+            justifyContent: "space-around",
+            zIndex: 1400,
+          }}
+        >
+          <FormControl variant="standard" sx={{ minWidth: 96 }} size="small">
+            <Select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+              size="small"
+            >
+              <MenuItem value={"Easy"}>Easy</MenuItem>
+              <MenuItem value={"Normal"}>Normal</MenuItem>
+              <MenuItem value={"Hard"}>Hard</MenuItem>
+            </Select>
+          </FormControl>
+
+          <ToggleButtonGroup
+            value={theme}
+            exclusive
+            onChange={(_, val) => val && setTheme(val)}
+            size="small"
+          >
+            <ToggleButton value="neon">Neon</ToggleButton>
+            <ToggleButton value="amber">Amber</ToggleButton>
+            <ToggleButton value="green">Green</ToggleButton>
+          </ToggleButtonGroup>
+
+          <IconButton
+            color="inherit"
+            onClick={() => (running ? stop() : start())}
+            aria-label="play-pause"
+            sx={{ bgcolor: "rgba(255,255,255,0.04)" }}
+          >
+            {running ? <Pause /> : <PlayArrow />}
+          </IconButton>
+          <IconButton
+            color="inherit"
+            onClick={() => {
+              restart();
+              if (!running) draw();
+            }}
+            aria-label="restart"
+            sx={{ bgcolor: "rgba(255,255,255,0.04)" }}
+          >
+            <RestartAlt />
+          </IconButton>
+        </Box>
+      ) : (
+        <Box component="footer" sx={{ p: 1, textAlign: "center" }}>
+          <Typography variant="caption">
+            Controls: W / S or ArrowUp / ArrowDown — Restart to reset the match.
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }

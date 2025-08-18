@@ -90,12 +90,19 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  /* Limit the canvas container height so it fits inside the viewport (header + footer reserved) */
+  max-height: calc(100vh - 160px);
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 canvas {
-  width: 100%;
-  height: auto;
-  max-width: 1000px;
+  /* Default: allow the canvas to size responsively without causing horizontal overflow.
+    Height is chosen to fit within available viewport height while also respecting width. */
+  width: auto;
+  height: min(calc(100vh - 160px), calc((100vw - 40px) * 9 / 16));
+  max-width: 100%;
+  max-height: 100%;
   aspect-ratio: 16/9;
   background: linear-gradient(180deg, rgba(6, 0, 24, 0.6), rgba(2, 0, 10, 0.9));
   border-radius: 10px;
@@ -215,13 +222,19 @@ canvas {
   .legend {
     font-size: 0.9rem;
   }
-  /* If device is portrait but small, show a hint and rotate the canvas visually */
-  @media (orientation: portrait) {
-    .legend::after {
-      content: " — best in landscape";
-      color: var(--accent);
-      margin-left: 8px;
-    }
+  /* On small screens, reduce the reserved header/footer space so canvas can be bigger */
+  .canvas-wrap {
+    max-height: calc(100vh - 112px);
+    padding: 6px;
+  }
+}
+
+/* If device is small and in portrait orientation, show a 'best in landscape' hint */
+@media (max-width: 720px) and (orientation: portrait) {
+  .legend::after {
+    content: " — best in landscape";
+    color: var(--muted);
+    margin-left: 8px;
   }
 }
 
@@ -234,4 +247,67 @@ canvas {
   .buttons {
     justify-content: space-between;
   }
+
+  /* further limit canvas on very small devices */
+  .canvas-wrap {
+    max-height: calc(100vh - 96px);
+  }
+}
+
+/* Mobile rotate overlay (only show on small portrait screens) */
+.mobile-rotate-overlay {
+  display: none; /* default hidden */
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1600;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text);
+  padding: 20px;
+}
+.mobile-rotate-overlay .rotate-inner {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+}
+@media (max-width: 720px) and (orientation: portrait) {
+  .mobile-rotate-overlay {
+    display: flex;
+  }
+}
+
+/* Prevent horizontal overflow from the page */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* When in small landscape, force the canvas to fit the available height and shrink width accordingly */
+.canvas-wrap.landscape-fit {
+  width: 100%;
+  max-width: none;
+  padding: 4px;
+}
+.canvas-wrap.landscape-fit canvas {
+  height: calc(
+    100vh - 88px
+  ); /* leave space for a small top bar and bottom controls */
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 16/9;
+}
+
+/* bottom control bar on small landscape */
+.mobile-bottom-controls {
+  background: rgba(2, 6, 24, 0.6);
+  border-radius: 12px;
+  padding: 6px 8px;
+  backdrop-filter: blur(6px);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
 }
