@@ -1,1 +1,0 @@
-import{j as e,o as s,p as r}from"./index-x6pBeOpD.js";function o(){return e.jsxs(s,{sx:{p:2},children:[e.jsx(r,{variant:"h5",children:"Tetris (starter)"}),e.jsx(r,{color:"text.secondary",children:"Placeholder for the Tetris clone. Game files will be added here."})]})}export{o as default};
