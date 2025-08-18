@@ -12,6 +12,9 @@ import MenuItem from "@mui/material/MenuItem";
 import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import PlayArrow from "@mui/icons-material/PlayArrow";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme as useMuiTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 
 type Cell = number; // 0 = empty, >0 color index
@@ -134,14 +137,14 @@ const tetrominoes: { [k: string]: number[][][] } = {
 };
 
 const COLORS = [
-  "#000000",
-  "#60a5fa",
-  "#f472b6",
-  "#a78bfa",
-  "#fb923c",
-  "#60a5fa",
-  "#34d399",
-  "#f87171",
+  "#000000", // Empty
+  "#00ffff", // Cyan (I-piece) - Classic Tetris cyan
+  "#0000ff", // Blue (J-piece) - Classic blue
+  "#ff8000", // Orange (L-piece) - Classic orange
+  "#ffff00", // Yellow (O-piece) - Classic yellow
+  "#00ff00", // Green (S-piece) - Classic green
+  "#ff0000", // Red (Z-piece) - Classic red
+  "#8000ff", // Purple (T-piece) - Classic purple
 ];
 
 function createGrid(): Grid {
@@ -176,6 +179,11 @@ export default function Tetris() {
   const animRef = useRef<number | null>(null);
   const lastRef = useRef<number | null>(null);
 
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const isLandscape = useMediaQuery("(orientation: landscape)");
+
+  const [gameStarted, setGameStarted] = useState(false);
   const [running, setRunning] = useState(false);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
@@ -225,8 +233,30 @@ export default function Tetris() {
     const container = wrapperRef.current ?? canvas.parentElement!;
     const rect = container.getBoundingClientRect();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    // size based on available width/height in the wrapper
-    const size = Math.floor(Math.min(rect.width, rect.height));
+
+    // Mobile responsive sizing
+    let size;
+    if (isMobile) {
+      if (isLandscape) {
+        // Landscape mobile - use height-based sizing
+        size = Math.min(
+          rect.width,
+          rect.height * 0.8,
+          window.innerHeight * 0.6
+        );
+      } else {
+        // Portrait mobile - use width-based sizing with padding
+        size = Math.min(
+          rect.width * 0.9,
+          rect.height * 0.7,
+          window.innerWidth * 0.85
+        );
+      }
+    } else {
+      // Desktop - use available space
+      size = Math.floor(Math.min(rect.width, rect.height));
+    }
+
     canvas.style.width = `${size}px`;
     canvas.style.height = `${Math.floor(size * (ROWS / COLS))}px`;
     canvas.width = Math.max(1, Math.floor(size * dpr));
@@ -281,14 +311,23 @@ export default function Tetris() {
       gravityRef.current = 0;
       stepDown();
     }
-    // update particles
+    // Update particles with optimized processing
     const p = particlesRef.current;
     for (let i = p.length - 1; i >= 0; i--) {
-      p[i].life -= dt;
-      p[i].x += p[i].vx * dt;
-      p[i].y += p[i].vy * dt;
-      p[i].vy += 420 * dt;
-      if (p[i].life <= 0) p.splice(i, 1);
+      const particle = p[i];
+      particle.life -= dt * 2; // Faster decay for performance
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      particle.vy += 300 * dt; // Reduced gravity calculation
+
+      if (particle.life <= 0) {
+        p.splice(i, 1);
+      }
+    }
+
+    // Limit total particles for performance
+    if (p.length > 30) {
+      p.splice(0, p.length - 30);
     }
   }
 
@@ -319,14 +358,19 @@ export default function Tetris() {
     if (cleared > 0) {
       setScore((s) => s + cleared * cleared * 100);
       setLines((L) => L + cleared);
-      for (let i = 0; i < cleared * 8; i++)
+
+      // Optimized particle spawning
+      const particleCount = Math.min(cleared * 6, 20); // Limit particles
+      for (let i = 0; i < particleCount; i++) {
         particlesRef.current.push({
           x: Math.random() * COLS,
-          y: (Math.random() * ROWS) / 2,
-          life: 0.6 + Math.random() * 0.8,
-          vx: (Math.random() - 0.5) * 80,
-          vy: -100 + Math.random() * 40,
+          y: (Math.random() * ROWS) / 3, // Concentrate near top
+          life: 0.4 + Math.random() * 0.4, // Shorter life
+          vx: (Math.random() - 0.5) * 60,
+          vy: -60 + Math.random() * 30,
         });
+      }
+
       if (lines + cleared >= level * 10) setLevel((lv) => lv + 1);
     }
     spawnPiece();
@@ -414,69 +458,98 @@ export default function Tetris() {
     const ctx = canvas.getContext("2d")!;
     const w = canvas.width / Math.max(1, window.devicePixelRatio || 1);
     const h = canvas.height / Math.max(1, window.devicePixelRatio || 1);
-    ctx.fillStyle = "#08121a";
-    ctx.fillRect(0, 0, w, h);
-    // compute cell size
-    const cellW = w / COLS;
-    const cellH = h / ROWS;
 
-    // draw grid cells
+    // Classic black background
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw classic arcade border
+    ctx.strokeStyle = "#00ff00";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, w - 2, h - 2);
+
+    // Compute cell size
+    const cellW = (w - 4) / COLS; // Account for border
+    const cellH = (h - 4) / ROWS;
+    const offsetX = 2;
+    const offsetY = 2;
+
+    // Draw grid cells with classic Tetris colors and styling
     const g = gridRef.current;
-    for (let r = 0; r < ROWS; r++)
+    for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const v = g[r][c];
         if (v) {
-          const x = c * cellW;
-          const y = r * cellH;
-          const grad = ctx.createLinearGradient(x, y, x + cellW, y + cellH);
-          grad.addColorStop(0, COLORS[v]);
-          grad.addColorStop(1, "#00000000");
-          ctx.fillStyle = grad;
-          roundRect(ctx, x + 1, y + 1, cellW - 2, cellH - 2, 4);
-          ctx.fill();
+          const x = offsetX + c * cellW;
+          const y = offsetY + r * cellH;
+
+          // Classic solid block colors
+          ctx.fillStyle = COLORS[v];
+          ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+
+          // Add classic 3D block effect
+          ctx.fillStyle = "rgba(255,255,255,0.3)";
+          ctx.fillRect(x + 1, y + 1, cellW - 2, 3); // Top highlight
+          ctx.fillRect(x + 1, y + 1, 3, cellH - 2); // Left highlight
+
+          ctx.fillStyle = "rgba(0,0,0,0.3)";
+          ctx.fillRect(x + cellW - 4, y + 1, 3, cellH - 2); // Right shadow
+          ctx.fillRect(x + 1, y + cellH - 4, cellW - 2, 3); // Bottom shadow
         }
       }
+    }
 
-    // draw current piece
+    // Draw current piece with same classic styling
     const piece = pieceRef.current;
     if (piece) {
-      for (let r = 0; r < piece.shape.length; r++)
-        for (let c = 0; c < piece.shape[r].length; c++)
+      for (let r = 0; r < piece.shape.length; r++) {
+        for (let c = 0; c < piece.shape[r].length; c++) {
           if (piece.shape[r][c]) {
-            const x = (piece.x + c) * cellW;
-            const y = (piece.y + r) * cellH;
+            const x = offsetX + (piece.x + c) * cellW;
+            const y = offsetY + (piece.y + r) * cellH;
             const v = piece.shape[r][c];
-            const ggrad = ctx.createRadialGradient(
-              x + cellW / 2,
-              y + cellH / 2,
-              2,
-              x + cellW / 2,
-              y + cellH / 2,
-              Math.max(cellW, cellH)
-            );
-            ggrad.addColorStop(0, COLORS[v]);
-            ggrad.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = ggrad;
-            roundRect(ctx, x + 1, y + 1, cellW - 2, cellH - 2, 3);
-            ctx.fill();
+
+            // Main block color
+            ctx.fillStyle = COLORS[v];
+            ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+
+            // 3D effect for current piece
+            ctx.fillStyle = "rgba(255,255,255,0.4)";
+            ctx.fillRect(x + 1, y + 1, cellW - 2, 3);
+            ctx.fillRect(x + 1, y + 1, 3, cellH - 2);
+
+            ctx.fillStyle = "rgba(0,0,0,0.4)";
+            ctx.fillRect(x + cellW - 4, y + 1, 3, cellH - 2);
+            ctx.fillRect(x + 1, y + cellH - 4, cellW - 2, 3);
           }
+        }
+      }
     }
 
-    // draw particles
+    // Draw classic arcade-style particles (simplified for performance)
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
     for (const p of particlesRef.current) {
-      const cx = p.x * cellW;
-      const cy = p.y * cellH;
-      const a = Math.max(0, p.life / 1);
-      ctx.globalCompositeOperation = "lighter";
-      const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, 10);
-      g2.addColorStop(0, `rgba(255,240,200,${a})`);
-      g2.addColorStop(1, `rgba(255,140,60,0)`);
-      ctx.fillStyle = g2;
-      ctx.fillRect(cx - 12, cy - 12, 24, 24);
-      ctx.globalCompositeOperation = "source-over";
-    }
+      const cx = offsetX + p.x * cellW;
+      const cy = offsetY + p.y * cellH;
+      const alpha = Math.max(0, p.life);
+      const size = 4 * alpha;
 
-    // draw preview into the small preview canvas
+      ctx.fillStyle = `rgba(255,255,0,${alpha})`;
+      ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
+    }
+    ctx.restore();
+
+    // Draw classic title and stats
+    ctx.save();
+    ctx.fillStyle = "#00ff00";
+    ctx.font = "bold 16px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = "#00ff00";
+    ctx.fillText("TETRIS", w / 2, 20);
+    ctx.restore();
+
     drawPreview();
   }
 
@@ -491,20 +564,29 @@ export default function Tetris() {
     pCan.height = cssSize * dpr;
     const ctx = pCan.getContext("2d")!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssSize, cssSize);
 
-    // determine next piece
+    // Classic dark background
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, cssSize, cssSize);
+
+    // Border
+    ctx.strokeStyle = "#00ff00";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(2, 2, cssSize - 4, cssSize - 4);
+
+    // Determine next piece
     let nextId = queueRef.current[0];
     if (!nextId) {
       if (bagRef.current.length === 0) bagRef.current = randomBag();
       nextId = bagRef.current[0];
     }
     if (!nextId) return;
+
     const variants = tetrominoes[nextId];
     const shape = variants[0];
     const rows = shape.length;
     const cols = shape[0].length;
-    const cell = Math.floor(cssSize / Math.max(cols, rows));
+    const cell = Math.floor((cssSize - 8) / Math.max(cols, rows, 4));
     const offsetX = Math.floor((cssSize - cols * cell) / 2);
     const offsetY = Math.floor((cssSize - rows * cell) / 2);
 
@@ -514,35 +596,51 @@ export default function Tetris() {
         if (!v) continue;
         const x = offsetX + c * cell;
         const y = offsetY + r * cell;
-        const g = ctx.createLinearGradient(x, y, x + cell, y + cell);
-        g.addColorStop(0, COLORS[v]);
-        g.addColorStop(1, "#00000000");
-        ctx.fillStyle = g;
-        roundRect(ctx, x + 1, y + 1, cell - 2, cell - 2, 4);
-        ctx.fill();
+
+        // Classic solid block
+        ctx.fillStyle = COLORS[v];
+        ctx.fillRect(x, y, cell - 1, cell - 1);
+
+        // Add mini 3D effect
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.fillRect(x, y, cell - 1, 1); // Top
+        ctx.fillRect(x, y, 1, cell - 1); // Left
+
+        ctx.fillStyle = "rgba(0,0,0,0.3)";
+        ctx.fillRect(x + cell - 2, y, 1, cell - 1); // Right
+        ctx.fillRect(x, y + cell - 2, cell - 1, 1); // Bottom
       }
     }
   }
 
-  function roundRect(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    r: number
-  ) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+  function startGame() {
+    setGameStarted(true);
+    setRunning(true);
+    spawnPiece();
+  }
+
+  function resetGame() {
+    gridRef.current = createGrid();
+    bagRef.current = randomBag();
+    queueRef.current = [];
+    holdRef.current = null;
+    setScore(0);
+    setLevel(1);
+    setLines(0);
+    setGameStarted(false);
+    setRunning(false);
+    particlesRef.current = [];
   }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (!gameStarted) {
+        if (e.key === " " || e.key === "Enter") {
+          startGame();
+        }
+        return;
+      }
+
       if (e.key === "ArrowLeft") move(-1);
       else if (e.key === "ArrowRight") move(1);
       else if (e.key === "ArrowUp") rotate();
@@ -553,8 +651,7 @@ export default function Tetris() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gameStarted]);
 
   return (
     <Box
@@ -572,16 +669,18 @@ export default function Tetris() {
         elevation={0}
         sx={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 48, sm: 64 } }}>
           <IconButton
             edge="start"
             color="inherit"
             onClick={() => navigate("/")}
           >
-            {" "}
-            <ArrowBack />{" "}
+            <ArrowBack />
           </IconButton>
-          <Typography variant="h6" sx={{ flex: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{ flex: 1, fontSize: { xs: 14, sm: 20 } }}
+          >
             Tetris
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
@@ -591,26 +690,25 @@ export default function Tetris() {
               onChange={(e: SelectChangeEvent<string>) =>
                 setDifficulty(e.target.value as "Easy" | "Normal" | "Hard")
               }
+              sx={{ minWidth: { xs: 80, sm: 120 } }}
             >
               <MenuItem value="Easy">Easy</MenuItem>
               <MenuItem value="Normal">Normal</MenuItem>
               <MenuItem value="Hard">Hard</MenuItem>
             </Select>
-            <Button variant="outlined" onClick={() => setRunning((r) => !r)}>
-              {running ? "Pause" : "Play"}
-            </Button>
+            {gameStarted && (
+              <Button
+                variant="outlined"
+                size={isMobile ? "small" : "medium"}
+                onClick={() => setRunning((r) => !r)}
+              >
+                {running ? "Pause" : "Play"}
+              </Button>
+            )}
             <Button
               variant="contained"
-              onClick={() => {
-                gridRef.current = createGrid();
-                bagRef.current = randomBag();
-                queueRef.current = [];
-                holdRef.current = null;
-                setScore(0);
-                setLevel(1);
-                setLines(0);
-                spawnPiece();
-              }}
+              size={isMobile ? "small" : "medium"}
+              onClick={resetGame}
             >
               Restart
             </Button>
@@ -620,18 +718,112 @@ export default function Tetris() {
 
       <Container
         maxWidth="lg"
-        sx={{ py: 2, flex: 1, display: "flex", alignItems: "stretch" }}
+        sx={{
+          py: { xs: 1, sm: 2 },
+          px: { xs: 1, sm: 2 },
+          flex: 1,
+          display: "flex",
+          alignItems: "stretch",
+        }}
       >
         <Paper
           sx={{
-            p: 2,
+            p: { xs: 1, sm: 2 },
             width: "100%",
             height: "100%",
             display: "flex",
             flexDirection: "column",
             boxSizing: "border-box",
+            position: "relative",
           }}
         >
+          {!gameStarted && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0, 0, 0, 0.9)",
+                zIndex: 10,
+                color: "#00ff00",
+                textAlign: "center",
+              }}
+            >
+              <Typography
+                variant="h4"
+                sx={{
+                  mb: 3,
+                  fontSize: { xs: "1.5rem", sm: "2rem" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  textShadow: "0 0 10px #00ff00",
+                }}
+              >
+                TETRIS
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  mb: 4,
+                  fontSize: { xs: "0.6rem", sm: "0.8rem" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  color: "#ffffff",
+                  maxWidth: "80%",
+                  lineHeight: 1.6,
+                }}
+              >
+                {isMobile
+                  ? "Arrange falling blocks to clear lines!"
+                  : "Use arrow keys to move and rotate pieces. Clear lines to score!"}
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<PlayArrow />}
+                onClick={startGame}
+                sx={{
+                  fontSize: { xs: "0.7rem", sm: "0.9rem" },
+                  padding: { xs: "8px 16px", sm: "12px 24px" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  background: "linear-gradient(45deg, #00ff00, #00aa00)",
+                  boxShadow: "0 0 20px rgba(0, 255, 0, 0.5)",
+                }}
+              >
+                START GAME
+              </Button>
+              {!isMobile && (
+                <Box sx={{ mt: 3, fontSize: "0.5rem", color: "#888" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: "0.4rem",
+                      display: "block",
+                      mb: 1,
+                    }}
+                  >
+                    Controls: ← → ↑ ↓ Arrow Keys
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: "0.4rem",
+                      display: "block",
+                    }}
+                  >
+                    Space: Hard Drop | C: Hold | P: Pause
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
           <Box
             ref={wrapperRef}
             sx={{
@@ -644,77 +836,161 @@ export default function Tetris() {
           >
             <canvas
               ref={canvasRef}
-              style={{ touchAction: "none", maxWidth: "100%", height: "100%" }}
+              style={{
+                touchAction: "none",
+                maxWidth: "100%",
+                height: "100%",
+                display: "block",
+              }}
             />
           </Box>
-          <Box
-            sx={{
-              mt: 1,
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              gap: 1,
-              justifyContent: "space-between",
-              alignItems: "center",
-              height: { xs: "auto", sm: 110 },
-            }}
-          >
-            <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
-              <Typography variant="subtitle2">Score</Typography>
-              <Typography variant="h6">{score}</Typography>
-            </Box>
-            <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
-              <Typography variant="subtitle2">Level</Typography>
-              <Typography variant="h6">{level}</Typography>
-            </Box>
-            <Box sx={{ textAlign: { xs: "center", sm: "left" } }}>
-              <Typography variant="subtitle2">Lines</Typography>
-              <Typography variant="h6">{lines}</Typography>
-            </Box>
+
+          {gameStarted && (
             <Box
               sx={{
+                mt: { xs: 1, sm: 1 },
                 display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                gap: { xs: 1, sm: 1 },
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: { xs: "center", sm: "flex-end" },
+                height: { xs: "auto", sm: 110 },
+                background: "rgba(0, 0, 0, 0.8)",
+                p: { xs: 1, sm: 2 },
+                borderRadius: 1,
+                border: "1px solid #00ff00",
               }}
             >
               <Box
                 sx={{
-                  mr: 1,
-                  width: 96,
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  bgcolor: "rgba(255,255,255,0.02)",
-                  borderRadius: 1,
-                  p: 0.5,
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  gap: { xs: 3, sm: 4 },
+                  justifyContent: "space-around",
+                  width: { xs: "100%", sm: "auto" },
                 }}
               >
-                <Typography variant="subtitle2" sx={{ fontSize: 12 }}>
-                  Next
-                </Typography>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontSize: { xs: "0.6rem", sm: "0.875rem" },
+                      color: "#00ff00",
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >
+                    Score
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontSize: { xs: "0.7rem", sm: "1.25rem" },
+                      color: "#ffffff",
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >
+                    {score}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontSize: { xs: "0.6rem", sm: "0.875rem" },
+                      color: "#00ff00",
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >
+                    Level
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontSize: { xs: "0.7rem", sm: "1.25rem" },
+                      color: "#ffffff",
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >
+                    {level}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontSize: { xs: "0.6rem", sm: "0.875rem" },
+                      color: "#00ff00",
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >
+                    Lines
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontSize: { xs: "0.7rem", sm: "1.25rem" },
+                      color: "#ffffff",
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >
+                    {lines}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: { xs: "center", sm: "flex-end" },
+                  mt: { xs: 1, sm: 0 },
+                }}
+              >
                 <Box
                   sx={{
-                    width: 96,
-                    height: 96,
+                    mr: { xs: 0, sm: 1 },
+                    width: { xs: 80, sm: 96 },
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
+                    bgcolor: "rgba(255,255,255,0.02)",
+                    borderRadius: 1,
+                    p: 0.5,
+                    border: "1px solid rgba(255,255,255,0.06)",
                   }}
                 >
-                  <canvas
-                    ref={previewRef}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      display: "block",
-                      borderRadius: 6,
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontSize: { xs: 10, sm: 12 },
+                      color: "#00ff00",
+                      fontFamily: "'Press Start 2P', monospace",
                     }}
-                  />
+                  >
+                    Next
+                  </Typography>
+                  <Box
+                    sx={{
+                      width: { xs: 80, sm: 96 },
+                      height: { xs: 80, sm: 96 },
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <canvas
+                      ref={previewRef}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "block",
+                        borderRadius: 6,
+                      }}
+                    />
+                  </Box>
                 </Box>
               </Box>
             </Box>
-          </Box>
+          )}
         </Paper>
       </Container>
     </Box>

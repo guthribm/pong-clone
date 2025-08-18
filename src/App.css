@@ -422,6 +422,48 @@
   .game-title {
     font-size: 1em;
   }
+
+  /* Mobile game canvas styling */
+  canvas {
+    max-width: 95vw !important;
+    max-height: 70vh !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  /* Mobile UI adjustments */
+  .MuiToolbar-root {
+    min-height: 48px !important;
+    padding: 0 8px !important;
+  }
+
+  .MuiContainer-root {
+    padding: 8px !important;
+  }
+
+  .MuiPaper-root {
+    padding: 8px !important;
+  }
+
+  /* Mobile buttons */
+  .MuiButton-root {
+    font-size: 8px !important;
+    padding: 4px 8px !important;
+    min-width: auto !important;
+  }
+
+  .MuiIconButton-root {
+    padding: 4px !important;
+  }
+
+  /* Mobile typography */
+  .MuiTypography-h6 {
+    font-size: 12px !important;
+  }
+
+  .MuiTypography-subtitle2 {
+    font-size: 8px !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -442,6 +484,21 @@
   .ticker-content {
     font-size: 0.6rem;
   }
+
+  /* Extra small mobile adjustments */
+  canvas {
+    max-width: 98vw !important;
+    max-height: 60vh !important;
+  }
+
+  .MuiButton-root {
+    font-size: 6px !important;
+    padding: 2px 6px !important;
+  }
+
+  .MuiTypography-h6 {
+    font-size: 10px !important;
+  }
 }
 
 /* Landscape orientation adjustments */
@@ -456,6 +513,54 @@
 
   .high-score-ticker {
     bottom: 0.5rem;
+  }
+
+  /* Landscape mobile game adjustments */
+  canvas {
+    max-height: 85vh !important;
+    max-width: 90vw !important;
+  }
+
+  .MuiContainer-root {
+    padding: 4px !important;
+  }
+
+  .MuiPaper-root {
+    padding: 4px !important;
+  }
+}
+
+/* Portrait mobile specific */
+@media (orientation: portrait) and (max-width: 768px) {
+  canvas {
+    max-width: 90vw !important;
+    max-height: 50vh !important;
+  }
+}
+
+/* Touch-friendly controls for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .MuiButton-root {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+  }
+
+  .MuiIconButton-root {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+  }
+
+  .MuiSelect-root {
+    min-height: 44px !important;
+    touch-action: manipulation !important;
+  }
+
+  /* Game canvas touch adjustments */
+  canvas {
+    touch-action: none !important;
+    user-select: none !important;
   }
 }
 
@@ -489,3 +594,176 @@
 }
 
 /* Keep existing game-specific styles for individual games */
+
+/* Enhanced Retro Game Canvas Styling */
+canvas {
+  background: #000000 !important;
+  border: 2px solid #00ffff !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+    inset 0 0 20px rgba(0, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.8) !important;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Retro Game UI Enhancements */
+.game-ui {
+  font-family: "Press Start 2P", monospace !important;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+/* Individual Game Theming */
+.pong-canvas {
+  border-color: #00ffff !important;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4),
+    inset 0 0 10px rgba(0, 255, 255, 0.1) !important;
+}
+
+.breakout-canvas {
+  border-color: #ff8000 !important;
+  box-shadow: 0 0 20px rgba(255, 128, 0, 0.4),
+    inset 0 0 10px rgba(255, 128, 0, 0.1) !important;
+}
+
+.tetris-canvas {
+  border-color: #00ff00 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4), inset 0 0 10px rgba(0, 255, 0, 0.1) !important;
+}
+
+/* Arcade-style buttons and controls */
+.MuiButton-root {
+  font-family: "Press Start 2P", monospace !important;
+  font-size: 10px !important;
+  padding: 8px 16px !important;
+  border-radius: 0 !important;
+  text-transform: none !important;
+  background: linear-gradient(180deg, #333, #111) !important;
+  border: 2px solid #00ffff !important;
+  color: #00ffff !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.MuiButton-root:hover {
+  background: linear-gradient(180deg, #444, #222) !important;
+  border-color: #00ff88 !important;
+  color: #00ff88 !important;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 255, 136, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+.MuiButton-root:active {
+  transform: translateY(1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Arcade-style Select dropdowns */
+.MuiSelect-root {
+  font-family: "Press Start 2P", monospace !important;
+  font-size: 10px !important;
+  background: #000 !important;
+  border: 1px solid #00ffff !important;
+  color: #00ffff !important;
+}
+
+.MuiMenuItem-root {
+  font-family: "Press Start 2P", monospace !important;
+  font-size: 10px !important;
+  background: #000 !important;
+  color: #00ffff !important;
+  border-bottom: 1px solid #003333 !important;
+}
+
+.MuiMenuItem-root:hover {
+  background: #003333 !important;
+  color: #00ff88 !important;
+}
+
+/* Arcade AppBar styling */
+.MuiAppBar-root {
+  background: linear-gradient(180deg, #000 0%, #111 100%) !important;
+  border-bottom: 2px solid #00ffff !important;
+  box-shadow: 0 2px 10px rgba(0, 255, 255, 0.3) !important;
+}
+
+.MuiToolbar-root {
+  font-family: "Press Start 2P", monospace !important;
+}
+
+.MuiTypography-h6 {
+  font-family: "Press Start 2P", monospace !important;
+  font-size: 14px !important;
+  color: #00ffff !important;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5) !important;
+}
+
+/* Icon button styling */
+.MuiIconButton-root {
+  color: #00ffff !important;
+  border: 1px solid transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+.MuiIconButton-root:hover {
+  background: rgba(0, 255, 255, 0.1) !important;
+  border-color: #00ffff !important;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) !important;
+}
+
+/* Toggle button styling for themes */
+.MuiToggleButton-root {
+  font-family: "Press Start 2P", monospace !important;
+  font-size: 8px !important;
+  background: #000 !important;
+  border: 1px solid #666 !important;
+  color: #666 !important;
+  padding: 6px 12px !important;
+  border-radius: 0 !important;
+}
+
+.MuiToggleButton-root.Mui-selected {
+  background: #003333 !important;
+  border-color: #00ffff !important;
+  color: #00ffff !important;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.4) !important;
+}
+
+/* CRT screen effects for game areas */
+.game-container {
+  position: relative;
+}
+
+.game-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 255, 0, 0.01) 2px,
+    rgba(0, 255, 0, 0.01) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Score display styling */
+.arcade-score {
+  font-family: "Press Start 2P", monospace !important;
+  color: #00ff00 !important;
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.6) !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid #00ff00 !important;
+  padding: 8px 12px !important;
+  margin: 4px !important;
+}

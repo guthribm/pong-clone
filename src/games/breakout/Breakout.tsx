@@ -12,6 +12,9 @@ import MenuItem from "@mui/material/MenuItem";
 import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import PlayArrow from "@mui/icons-material/PlayArrow";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme as useMuiTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import { resetBall, bumpSpeed, clamp } from "../../game";
 import type { Ball } from "../../game";
@@ -34,6 +37,11 @@ export default function Breakout() {
   const animationRef = useRef<number | null>(null);
   const lastRef = useRef<number | null>(null);
 
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const isLandscape = useMediaQuery("(orientation: landscape)");
+
+  const [gameStarted, setGameStarted] = useState(false);
   const [running, setRunning] = useState(false);
   type Diff = "Easy" | "Normal" | "Hard";
   const [difficulty, setDifficulty] = useState<Diff>("Normal");
@@ -75,8 +83,31 @@ export default function Breakout() {
     const parent = canvas.parentElement!;
     const rect = parent.getBoundingClientRect();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const width = Math.floor(rect.width);
-    const height = Math.floor(rect.width / CANVAS_ASPECT);
+
+    // Mobile responsive sizing
+    let width, height;
+    if (isMobile) {
+      if (isLandscape) {
+        // Landscape mobile - use most of screen height
+        width = Math.min(
+          rect.width - 20,
+          window.innerHeight * 0.7 * CANVAS_ASPECT
+        );
+        height = Math.min(rect.height - 20, window.innerHeight * 0.7);
+      } else {
+        // Portrait mobile - use most of screen width
+        width = Math.min(rect.width - 20, window.innerWidth * 0.95);
+        height = Math.min(
+          rect.height - 20,
+          (window.innerWidth * 0.95) / CANVAS_ASPECT
+        );
+      }
+    } else {
+      // Desktop - maintain aspect ratio
+      width = Math.floor(rect.width);
+      height = Math.floor(rect.width / CANVAS_ASPECT);
+    }
+
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     canvas.width = Math.floor(width * dpr);
@@ -130,6 +161,8 @@ export default function Breakout() {
     resetBall(ballRef.current as Ball, canvasW, canvasH, null);
     setScore(0);
     setLives(3);
+    setGameStarted(false);
+    setRunning(false);
     trailRef.current = [];
     particlesRef.current = [];
     powerUpsRef.current = [];
@@ -197,14 +230,20 @@ export default function Breakout() {
   }, [running, difficulty]);
 
   function spawnParticles(x: number, y: number, count = 12) {
+    // Reduce particle count for performance
+    const actualCount = Math.min(count, 8);
     const p = particlesRef.current;
-    for (let i = 0; i < count; i++) {
+
+    // Limit total particles
+    if (p.length > 80) return;
+
+    for (let i = 0; i < actualCount; i++) {
       p.push({
-        x,
-        y,
-        vx: (Math.random() - 0.5) * 240,
-        vy: (Math.random() - 0.5) * 240 - 60,
-        life: 0.6 + Math.random() * 0.8,
+        x: x + (Math.random() - 0.5) * 8,
+        y: y + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 180,
+        vy: (Math.random() - 0.5) * 180 - 40,
+        life: 0.4 + Math.random() * 0.4,
       });
     }
   }
@@ -228,24 +267,40 @@ export default function Breakout() {
 
   function updateParticles(dt: number) {
     const p = particlesRef.current;
+    // Process particles in reverse to safely remove
     for (let i = p.length - 1; i >= 0; i--) {
-      p[i].life -= dt;
-      p[i].x += p[i].vx * dt;
-      p[i].y += p[i].vy * dt;
-      p[i].vy += 600 * dt;
-      if (p[i].life <= 0) p.splice(i, 1);
+      const particle = p[i];
+      particle.life -= dt * 1.5; // Faster decay for performance
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      particle.vy += 400 * dt; // Gravity
+
+      if (particle.life <= 0) {
+        p.splice(i, 1);
+      }
+    }
+    // Limit total particles for performance
+    if (p.length > 100) {
+      p.splice(0, p.length - 100);
     }
   }
 
   function updateTrail(dt: number) {
     const t = trailRef.current;
-    // add a trace entry per ball (limit total length)
-    for (const b of ballsRef.current) {
-      t.unshift({ x: b.x, y: b.y, life: 0.45 });
+
+    // Add trail points more selectively for performance
+    if (ballsRef.current.length > 0 && t.length < 20) {
+      for (const b of ballsRef.current) {
+        t.unshift({ x: b.x, y: b.y, life: 0.3 });
+      }
     }
+
+    // Update trail life and remove old points
     for (let i = t.length - 1; i >= 0; i--) {
-      t[i].life -= dt;
-      if (t[i].life <= 0) t.splice(i, 1);
+      t[i].life -= dt * 2; // Faster trail decay
+      if (t[i].life <= 0) {
+        t.splice(i, 1);
+      }
     }
   }
 
@@ -468,121 +523,155 @@ export default function Breakout() {
     const w = canvas.width / Math.max(1, window.devicePixelRatio || 1);
     const h = canvas.height / Math.max(1, window.devicePixelRatio || 1);
 
-    // background
-    ctx.fillStyle = "#08121a";
+    // Pure black background like original
+    ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, w, h);
 
-    // draw bricks
+    // Draw classic arcade border
+    ctx.strokeStyle = "#00ffff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(2, 2, w - 4, h - 4);
+
+    // Draw bricks with classic colors matching original Breakout
+    const brickColors = [
+      "#ff0000", // Red (top rows)
+      "#ff8000", // Orange
+      "#ffff00", // Yellow
+      "#00ff00", // Green
+      "#0080ff", // Blue
+      "#8000ff", // Purple (bottom rows)
+    ];
+
     for (const b of bricksRef.current) {
       if (!b.alive) continue;
-      // color by type/hits
+
+      // Classic Breakout color scheme based on row
+      const row = Math.floor(b.y / 25);
+      let color = brickColors[Math.min(row, brickColors.length - 1)];
+
       if (b.type === "unbreakable") {
-        ctx.fillStyle = "#6b7280";
-      } else if (b.type === "strong") {
-        ctx.fillStyle = b.hits === 2 ? "#f59e0b" : "#fb923c";
-      } else {
-        ctx.fillStyle = `hsl(${(b.x % 360) + (b.y % 60)},70%,60%)`;
+        color = "#888888"; // Gray for unbreakable
+      } else if (b.type === "strong" && b.hits === 1) {
+        color = "#ffffff"; // White when damaged
       }
-      roundRect(ctx, b.x, b.y, b.w, b.h, 4);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.18)";
-      ctx.stroke();
-    }
 
-    // draw paddle
-    const p = paddleRef.current;
-    ctx.fillStyle = "#5eead4";
-    roundRect(ctx, p.x, p.y, p.w, p.h, 6);
-    ctx.fill();
-
-    // draw balls
-    for (const ball of ballsRef.current) {
-      ctx.beginPath();
-      ctx.fillStyle = "#60a5fa";
-      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // draw trail
-    const trail = trailRef.current;
-    for (let i = 0; i < trail.length; i++) {
-      const t = trail[i];
-      const a = Math.max(0, t.life / 0.45);
-      const s = (1 - a) * ballRef.current.r * 1.6 + 1;
-      ctx.beginPath();
-      const g = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, s * 2);
-      g.addColorStop(0, `rgba(96,165,250,${0.5 * a})`);
-      g.addColorStop(1, `rgba(96,165,250,0)`);
-      ctx.fillStyle = g;
-      ctx.fillRect(t.x - s, t.y - s, s * 2, s * 2);
-    }
-
-    // draw particles with radial gradient + blur
-    for (const pp of particlesRef.current) {
-      const a = Math.max(0, pp.life / 1.2);
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      const rad = Math.max(1, 6 * a);
-      const g = ctx.createRadialGradient(pp.x, pp.y, 0, pp.x, pp.y, rad * 3);
-      g.addColorStop(0, `rgba(255,220,120,${a})`);
-      g.addColorStop(0.6, `rgba(255,120,60,${a * 0.6})`);
-      g.addColorStop(1, `rgba(255,120,60,0)`);
-      ctx.fillStyle = g;
-      ctx.fillRect(pp.x - rad * 3, pp.y - rad * 3, rad * 6, rad * 6);
+      ctx.fillStyle = color;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = color;
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+
+      // Add classic brick outline
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(b.x, b.y, b.w, b.h);
       ctx.restore();
     }
 
-    // draw power-ups
+    // Draw paddle - classic white rectangle
+    const p = paddleRef.current;
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "#00ffff";
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.restore();
+
+    // Draw trail with classic arcade glow
+    const trail = trailRef.current;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < trail.length; i++) {
+      const t = trail[i];
+      const alpha = Math.max(0, t.life / 0.45);
+      const size = (1 - alpha) * ballRef.current.r * 0.8;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,255,255,${alpha * 0.4})`;
+      ctx.arc(t.x, t.y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Draw balls - classic white squares like original
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "#ffffff";
+    for (const ball of ballsRef.current) {
+      ctx.fillRect(ball.x - ball.r, ball.y - ball.r, ball.r * 2, ball.r * 2);
+    }
+    ctx.restore();
+
+    // Draw particles with classic explosion effect
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const pp of particlesRef.current) {
+      const alpha = Math.max(0, pp.life / 1.2);
+      const size = Math.max(1, 4 * alpha);
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,255,0,${alpha})`;
+      ctx.arc(pp.x, pp.y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Draw power-ups with classic styling
     for (const pu of powerUpsRef.current) {
       if (!pu.alive) continue;
       ctx.save();
-      ctx.fillStyle =
-        pu.type === "expand"
-          ? "#34d399"
-          : pu.type === "life"
-          ? "#60a5fa"
-          : "#f472b6";
-      roundRect(ctx, pu.x, pu.y, pu.w, pu.h, 4);
-      ctx.fill();
+
+      const colors = {
+        expand: "#00ff00",
+        life: "#ff0080",
+        slow: "#00ffff",
+        multiball: "#ffff00",
+      };
+
+      ctx.fillStyle = colors[pu.type];
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = colors[pu.type];
+      ctx.fillRect(pu.x, pu.y, pu.w, pu.h);
+
+      // Add power-up symbol
       ctx.fillStyle = "#000000";
-      ctx.font = "12px sans-serif";
-      ctx.fillText(
-        pu.type === "expand" ? "E" : pu.type === "life" ? "+1" : "S",
-        pu.x + 6,
-        pu.y + pu.h - 4
-      );
+      ctx.font = "bold 12px 'Press Start 2P', monospace";
+      ctx.textAlign = "center";
+      const symbols = { expand: "W", life: "+", slow: "S", multiball: "M" };
+      ctx.fillText(symbols[pu.type], pu.x + pu.w / 2, pu.y + pu.h / 2 + 4);
       ctx.restore();
     }
 
-    // UI overlay
+    // Draw classic arcade-style score and info
+    ctx.save();
+    ctx.fillStyle = "#00ff00";
+    ctx.font = "bold 16px 'Press Start 2P', monospace";
+    ctx.textAlign = "left";
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = "#00ff00";
+
+    // Score and level display
+    ctx.fillText(`SCORE: ${score.toString().padStart(6, "0")}`, 10, 25);
+    ctx.fillText(`LEVEL: ${level}`, 10, 45);
+    ctx.fillText(`LIVES: ${lives}`, 10, 65);
+
+    // Title at top center
+    ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff";
-    ctx.font = "14px sans-serif";
-    ctx.fillText(`Score: ${score}`, 12, h - 12);
-    ctx.fillText(`Lives: ${lives}`, w - 84, h - 12);
-    ctx.fillText(`Level: ${level}`, w / 2 - 24, h - 12);
+    ctx.font = "bold 20px 'Press Start 2P', monospace";
+    ctx.fillText("BREAKOUT", w / 2, 25);
+    ctx.restore();
   }
 
-  function roundRect(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    r: number
-  ) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+  function startGame() {
+    setGameStarted(true);
+    setRunning(true);
   }
 
   // input handling
   useEffect(() => {
     const canvas = canvasRef.current!;
     function onPointerMove(e: PointerEvent) {
+      if (!gameStarted) return;
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       paddleRef.current.x = clamp(
@@ -592,6 +681,10 @@ export default function Breakout() {
       );
     }
     function onPointerDown(e: PointerEvent) {
+      if (!gameStarted) {
+        startGame();
+        return;
+      }
       onPointerMove(e);
       if (!running) setRunning(true);
     }
@@ -599,6 +692,13 @@ export default function Breakout() {
       // no-op
     }
     function onKey(e: KeyboardEvent) {
+      if (!gameStarted) {
+        if (e.key === " " || e.key === "Enter") {
+          startGame();
+        }
+        return;
+      }
+
       const rect = canvas.getBoundingClientRect();
       if (e.key === "ArrowLeft") {
         paddleRef.current.x = clamp(
@@ -626,17 +726,25 @@ export default function Breakout() {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("keydown", onKey);
     };
-  }, [running]);
+  }, [running, gameStarted]);
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <AppBar
         position="static"
         color="transparent"
         elevation={0}
         sx={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 48, sm: 64 } }}>
           <IconButton
             edge="start"
             color="inherit"
@@ -644,7 +752,10 @@ export default function Breakout() {
           >
             <ArrowBack />
           </IconButton>
-          <Typography variant="h6" sx={{ flex: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{ flex: 1, fontSize: { xs: 14, sm: 20 } }}
+          >
             Breakout
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
@@ -654,16 +765,24 @@ export default function Breakout() {
               onChange={(e: SelectChangeEvent<string>) =>
                 setDifficulty(e.target.value as Diff)
               }
+              sx={{ minWidth: { xs: 80, sm: 120 } }}
             >
               <MenuItem value="Easy">Easy</MenuItem>
               <MenuItem value="Normal">Normal</MenuItem>
               <MenuItem value="Hard">Hard</MenuItem>
             </Select>
-            <Button variant="outlined" onClick={() => setRunning((r) => !r)}>
-              {running ? "Pause" : "Play"}
-            </Button>
+            {gameStarted && (
+              <Button
+                variant="outlined"
+                size={isMobile ? "small" : "medium"}
+                onClick={() => setRunning((r) => !r)}
+              >
+                {running ? "Pause" : "Play"}
+              </Button>
+            )}
             <Button
               variant="contained"
+              size={isMobile ? "small" : "medium"}
               onClick={() => {
                 const canvas = canvasRef.current!;
                 const w =
@@ -679,16 +798,223 @@ export default function Breakout() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 3, flex: 1 }}>
-        <Paper sx={{ p: 2 }}>
+      <Container
+        maxWidth="lg"
+        sx={{
+          py: { xs: 1, sm: 3 },
+          px: { xs: 1, sm: 3 },
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Paper
+          sx={{
+            p: { xs: 1, sm: 2 },
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+          }}
+        >
+          {!gameStarted && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0, 0, 0, 0.8)",
+                zIndex: 10,
+                color: "#00ffff",
+                textAlign: "center",
+              }}
+            >
+              <Typography
+                variant="h4"
+                sx={{
+                  mb: 3,
+                  fontSize: { xs: "1.5rem", sm: "2rem" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  textShadow: "0 0 10px #00ffff",
+                }}
+              >
+                BREAKOUT
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  mb: 4,
+                  fontSize: { xs: "0.7rem", sm: "1rem" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  color: "#ffffff",
+                  maxWidth: "80%",
+                }}
+              >
+                Break all the bricks to advance to the next level!
+                {isMobile
+                  ? " Tap to move paddle and start!"
+                  : " Use mouse or arrow keys to move paddle."}
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<PlayArrow />}
+                onClick={startGame}
+                sx={{
+                  fontSize: { xs: "0.8rem", sm: "1rem" },
+                  padding: { xs: "8px 16px", sm: "12px 24px" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  background: "linear-gradient(45deg, #ff8000, #ffaa00)",
+                  boxShadow: "0 0 20px rgba(255, 128, 0, 0.5)",
+                }}
+              >
+                START GAME
+              </Button>
+              {!isMobile && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    mt: 3,
+                    fontSize: "0.6rem",
+                    color: "#888",
+                    fontFamily: "'Press Start 2P', monospace",
+                  }}
+                >
+                  Press SPACE or ENTER to start
+                </Typography>
+              )}
+            </Box>
+          )}
+
           <Box
-            sx={{ width: "100%", display: "flex", justifyContent: "center" }}
+            sx={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              overflow: "hidden",
+            }}
           >
             <canvas
               ref={canvasRef}
-              style={{ touchAction: "none", maxWidth: "100%" }}
+              style={{
+                touchAction: "none",
+                maxWidth: "100%",
+                maxHeight: "100%",
+                display: "block",
+              }}
             />
           </Box>
+
+          {gameStarted && (
+            <Box
+              sx={{
+                mt: { xs: 1, sm: 2 },
+                display: "flex",
+                flexDirection: { xs: "row", sm: "row" },
+                flexWrap: "wrap",
+                gap: { xs: 2, sm: 3 },
+                justifyContent: "space-around",
+                alignItems: "center",
+                background: "rgba(0, 0, 0, 0.8)",
+                p: { xs: 1, sm: 2 },
+                borderRadius: 1,
+                border: "1px solid #00ffff",
+              }}
+            >
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontSize: { xs: "0.6rem", sm: "0.875rem" },
+                    color: "#00ff00",
+                    fontFamily: "'Press Start 2P', monospace",
+                  }}
+                >
+                  Score
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontSize: { xs: "0.8rem", sm: "1.25rem" },
+                    color: "#ffffff",
+                    fontFamily: "'Press Start 2P', monospace",
+                  }}
+                >
+                  {score.toString().padStart(6, "0")}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontSize: { xs: "0.6rem", sm: "0.875rem" },
+                    color: "#00ff00",
+                    fontFamily: "'Press Start 2P', monospace",
+                  }}
+                >
+                  Level
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontSize: { xs: "0.8rem", sm: "1.25rem" },
+                    color: "#ffffff",
+                    fontFamily: "'Press Start 2P', monospace",
+                  }}
+                >
+                  {level}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontSize: { xs: "0.6rem", sm: "0.875rem" },
+                    color: "#00ff00",
+                    fontFamily: "'Press Start 2P', monospace",
+                  }}
+                >
+                  Lives
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontSize: { xs: "0.8rem", sm: "1.25rem" },
+                    color: "#ff0000",
+                    fontFamily: "'Press Start 2P', monospace",
+                  }}
+                >
+                  {lives}
+                </Typography>
+              </Box>
+              {!isMobile && (
+                <Box
+                  sx={{
+                    textAlign: "center",
+                    fontSize: "0.6rem",
+                    color: "#888",
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: "0.5rem",
+                    }}
+                  >
+                    ← → Arrow Keys | Space: Pause
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
         </Paper>
       </Container>
     </Box>

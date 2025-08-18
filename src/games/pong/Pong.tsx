@@ -19,11 +19,34 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
+import Button from "@mui/material/Button";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme as useMuiTheme } from "@mui/material/styles";
 
 const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 500;
+
+// Mobile responsive canvas sizing
+function getCanvasSize(isMobile: boolean, isSmallLandscape: boolean) {
+  if (isMobile) {
+    if (isSmallLandscape) {
+      return {
+        width: Math.min(CANVAS_WIDTH, window.innerWidth * 0.85),
+        height: Math.min(CANVAS_HEIGHT, window.innerHeight * 0.6),
+      };
+    } else {
+      // Portrait mobile
+      return {
+        width: Math.min(CANVAS_WIDTH, window.innerWidth * 0.95),
+        height: Math.min(
+          CANVAS_HEIGHT,
+          window.innerWidth * 0.95 * (CANVAS_HEIGHT / CANVAS_WIDTH)
+        ),
+      };
+    }
+  }
+  return { width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+}
 
 export default function Pong() {
   const navigate = useNavigate();
@@ -111,6 +134,19 @@ export default function Pong() {
     speed: 420,
   });
 
+  // Initialize positions based on current canvas size
+  useEffect(() => {
+    const canvasSize = getCanvasSize(isMobile, isSmallLandscape);
+    const canvasW = canvasSize.width;
+    const canvasH = canvasSize.height;
+
+    ballRef.current.x = canvasW / 2;
+    ballRef.current.y = canvasH / 2;
+    paddleLeftRef.current.y = canvasH / 2 - 50;
+    paddleRightRef.current.y = canvasH / 2 - 50;
+    paddleRightRef.current.x = canvasW - 20 - 12;
+  }, [isMobile, isSmallLandscape]);
+
   const keysRef = useRef<Record<string, boolean>>({});
   const pointerDownRef = useRef(false);
   const runningRef = useRef(false);
@@ -196,15 +232,23 @@ export default function Pong() {
   }
 
   function restart() {
+    const canvasSize = getCanvasSize(isMobile, isSmallLandscape);
+    const canvasW = canvasSize.width;
+    const canvasH = canvasSize.height;
+
     scoreLeftRef.current = 0;
     scoreRightRef.current = 0;
-    paddleLeftRef.current.y = CANVAS_HEIGHT / 2 - paddleLeftRef.current.h / 2;
-    paddleRightRef.current.y = CANVAS_HEIGHT / 2 - paddleRightRef.current.h / 2;
-    resetBall(ballRef.current, CANVAS_WIDTH, CANVAS_HEIGHT, null);
+    paddleLeftRef.current.y = canvasH / 2 - paddleLeftRef.current.h / 2;
+    paddleRightRef.current.y = canvasH / 2 - paddleRightRef.current.h / 2;
+    resetBall(ballRef.current, canvasW, canvasH, null);
     draw();
   }
 
   function update(dt: number) {
+    const canvasSize = getCanvasSize(isMobile, isSmallLandscape);
+    const canvasW = canvasSize.width;
+    const canvasH = canvasSize.height;
+
     const b = ballRef.current;
     const pl = paddleLeftRef.current;
     const pr = paddleRightRef.current;
@@ -223,9 +267,9 @@ export default function Pong() {
     )
       playerDir = 1;
     pl.y += playerDir * pl.speed * dt;
-    pl.y = clamp(pl.y, 0, CANVAS_HEIGHT - pl.h);
+    pl.y = clamp(pl.y, 0, canvasH - pl.h);
 
-    updateAI(pr, b, difficulty, dt, CANVAS_HEIGHT);
+    updateAI(pr, b, difficulty, dt, canvasH);
 
     b.x += b.vx * dt;
     b.y += b.vy * dt;
@@ -233,8 +277,8 @@ export default function Pong() {
     if (b.y - b.r <= 0) {
       b.y = b.r;
       b.vy = -b.vy;
-    } else if (b.y + b.r >= CANVAS_HEIGHT) {
-      b.y = CANVAS_HEIGHT - b.r;
+    } else if (b.y + b.r >= canvasH) {
+      b.y = canvasH - b.r;
       b.vy = -b.vy;
     }
 
@@ -263,15 +307,15 @@ export default function Pong() {
       scoreAnimRightRef.current = performance.now() / 1000;
       startScoreAnimLoop();
       spawnScoreParticles(b.x, b.y);
-      resetBall(b, CANVAS_WIDTH, CANVAS_HEIGHT, false);
+      resetBall(b, canvasW, canvasH, false);
       draw();
       requestAnimationFrame(() => draw());
-    } else if (b.x > CANVAS_WIDTH) {
+    } else if (b.x > canvasW) {
       scoreLeftRef.current += 1;
       scoreAnimLeftRef.current = performance.now() / 1000;
       startScoreAnimLoop();
       spawnScoreParticles(b.x, b.y);
-      resetBall(b, CANVAS_WIDTH, CANVAS_HEIGHT, true);
+      resetBall(b, canvasW, canvasH, true);
       draw();
       requestAnimationFrame(() => draw());
     }
@@ -286,29 +330,44 @@ export default function Pong() {
     const ctx = canvas.getContext("2d")!;
 
     const dpr = window.devicePixelRatio || 1;
-    if (
-      canvas.width !== CANVAS_WIDTH * dpr ||
-      canvas.height !== CANVAS_HEIGHT * dpr
-    ) {
-      canvas.width = CANVAS_WIDTH * dpr;
-      canvas.height = CANVAS_HEIGHT * dpr;
-      canvas.style.width = `${CANVAS_WIDTH}px`;
-      canvas.style.height = `${CANVAS_HEIGHT}px`;
+    const canvasSize = getCanvasSize(isMobile, isSmallLandscape);
+    const canvasW = canvasSize.width;
+    const canvasH = canvasSize.height;
+
+    if (canvas.width !== canvasW * dpr || canvas.height !== canvasH * dpr) {
+      canvas.width = canvasW * dpr;
+      canvas.height = canvasH * dpr;
+      canvas.style.width = `${canvasW}px`;
+      canvas.style.height = `${canvasH}px`;
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const themeColors = getThemeColors(theme);
     ctx.fillStyle = themeColors.bg;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, canvasW, canvasH);
 
-    ctx.fillStyle = themeColors.net;
-    for (let y = 10; y < CANVAS_HEIGHT; y += 30)
-      ctx.fillRect(CANVAS_WIDTH / 2 - 2, y, 4, 20);
+    // Draw border like original Pong
+    ctx.strokeStyle = themeColors.border;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.strokeRect(0, 0, canvasW, canvasH);
+
+    // Draw classic dashed center line
+    ctx.strokeStyle = themeColors.net;
+    ctx.lineWidth = 4;
+    ctx.setLineDash([20, 15]);
+    ctx.beginPath();
+    ctx.moveTo(canvasW / 2, 0);
+    ctx.lineTo(canvasW / 2, canvasH);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     const pl = paddleLeftRef.current;
     const pr = paddleRightRef.current;
+
+    // Draw paddles with classic rectangular look
     ctx.save();
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = 15;
     ctx.shadowColor = themeColors.paddleGlowLeft;
     ctx.fillStyle = themeColors.paddleLeft;
     ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
@@ -319,83 +378,104 @@ export default function Pong() {
 
     drawTrail(ctx);
 
+    // Draw ball as perfect square like original Pong
     const b = ballRef.current;
     ctx.save();
-    ctx.beginPath();
-    ctx.shadowBlur = 28;
+    ctx.shadowBlur = 20;
     ctx.shadowColor = themeColors.ballGlow;
     ctx.fillStyle = themeColors.ball;
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
     ctx.restore();
 
     drawParticles(ctx);
 
+    // Draw classic arcade-style scores
     ctx.fillStyle = themeColors.text;
     ctx.textAlign = "center";
+    const fontSize = Math.max(24, Math.min(36, canvasW * 0.04));
+    ctx.font = `bold ${fontSize}px 'Press Start 2P', monospace`;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = themeColors.text;
+
     const now = performance.now() / 1000;
     const drawAnimatedScore = (value: number, x: number, animT: number) => {
       const age = animT ? now - animT : 1000;
       let scale = 1;
+      let alpha = 1;
       if (age < 0.9) {
         const t = age / 0.9;
-        scale = 1 + Math.sin(Math.min(1, t) * Math.PI) * (1 - t) * 0.9;
+        scale = 1 + Math.sin(Math.min(1, t) * Math.PI) * (1 - t) * 0.5;
+        alpha = 0.5 + 0.5 * Math.sin(t * Math.PI * 6); // Flash effect
       }
-      const fontSize = Math.round(28 * scale);
-      ctx.font = `${fontSize}px system-ui`;
+      const dynamicFontSize = Math.round(fontSize * scale);
+      ctx.font = `bold ${dynamicFontSize}px 'Press Start 2P', monospace`;
       ctx.save();
-      ctx.translate(x, 46);
+      ctx.globalAlpha = alpha;
+      ctx.translate(x, 60);
       ctx.scale(1, 1);
       ctx.fillText(String(value), 0, 0);
       ctx.restore();
     };
     drawAnimatedScore(
       scoreLeftRef.current,
-      CANVAS_WIDTH * 0.25,
+      canvasW * 0.25,
       scoreAnimLeftRef.current
     );
     drawAnimatedScore(
       scoreRightRef.current,
-      CANVAS_WIDTH * 0.75,
+      canvasW * 0.75,
       scoreAnimRightRef.current
     );
+
+    // Add "PONG" title at top center like arcade
+    ctx.save();
+    const titleFontSize = Math.max(16, Math.min(24, canvasW * 0.027));
+    ctx.font = `bold ${titleFontSize}px 'Press Start 2P', monospace`;
+    ctx.fillStyle = themeColors.text;
+    ctx.globalAlpha = 0.6;
+    ctx.textAlign = "center";
+    ctx.fillText("PONG", canvasW / 2, 30);
+    ctx.restore();
   }
 
   function getThemeColors(t: "neon" | "amber" | "green") {
     if (t === "neon")
       return {
-        bg: "#030014",
-        net: "rgba(0,247,255,0.06)",
-        paddleLeft: "#00f7ff",
-        paddleRight: "#ff4db8",
-        paddleGlowLeft: "rgba(0,247,255,0.45)",
-        paddleGlowRight: "rgba(255,77,184,0.45)",
-        ball: "#fff25c",
-        ballGlow: "rgba(255,242,92,0.65)",
-        text: "#e8faff",
+        bg: "#000000", // Pure black like original arcade
+        net: "rgba(0,255,255,0.8)", // Bright cyan net
+        paddleLeft: "#ffffff", // Classic white paddles
+        paddleRight: "#ffffff",
+        paddleGlowLeft: "rgba(0,255,255,0.6)",
+        paddleGlowRight: "rgba(255,0,255,0.6)",
+        ball: "#ffffff", // White ball like original
+        ballGlow: "rgba(0,255,255,0.8)",
+        text: "#00ff00", // Classic green score text
+        border: "#00ffff", // Cyan border
       };
     if (t === "amber")
       return {
-        bg: "#1b0f00",
-        net: "rgba(255,200,120,0.08)",
-        paddleLeft: "#ffd86b",
-        paddleRight: "#ffb86b",
-        paddleGlowLeft: "rgba(255,216,107,0.35)",
-        paddleGlowRight: "rgba(255,184,107,0.35)",
-        ball: "#fff1c6",
-        ballGlow: "rgba(255,241,200,0.45)",
-        text: "#fff7e6",
+        bg: "#1a0800",
+        net: "rgba(255,200,120,0.8)",
+        paddleLeft: "#ffaa00",
+        paddleRight: "#ffaa00",
+        paddleGlowLeft: "rgba(255,170,0,0.6)",
+        paddleGlowRight: "rgba(255,200,0,0.6)",
+        ball: "#ffdd00",
+        ballGlow: "rgba(255,221,0,0.8)",
+        text: "#ffaa00",
+        border: "#ffaa00",
       };
     return {
-      bg: "#001405",
-      net: "rgba(144,255,166,0.06)",
-      paddleLeft: "#9effa6",
-      paddleRight: "#4df2a6",
-      paddleGlowLeft: "rgba(158,255,166,0.35)",
-      paddleGlowRight: "rgba(77,242,166,0.35)",
-      ball: "#caffd4",
-      ballGlow: "rgba(202,255,212,0.5)",
-      text: "#eaffef",
+      bg: "#001a00",
+      net: "rgba(0,255,0,0.8)",
+      paddleLeft: "#00ff00",
+      paddleRight: "#00ff00",
+      paddleGlowLeft: "rgba(0,255,0,0.6)",
+      paddleGlowRight: "rgba(50,255,50,0.6)",
+      ball: "#00ff88",
+      ballGlow: "rgba(0,255,136,0.8)",
+      text: "#00ff00",
+      border: "#00ff88",
     };
   }
 
@@ -459,30 +539,52 @@ export default function Pong() {
     const arr = trailRef.current;
     const now = performance.now() / 1000;
     const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-    arr.push({ x: b.x, y: b.y, t: now, speed });
-    while (arr.length > 0 && now - arr[0].t > 0.6) arr.shift();
+
+    // Only add trail point if ball has moved significantly
+    const lastPoint = arr[arr.length - 1];
+    if (
+      !lastPoint ||
+      Math.abs(b.x - lastPoint.x) > 5 ||
+      Math.abs(b.y - lastPoint.y) > 5
+    ) {
+      arr.push({ x: b.x, y: b.y, t: now, speed });
+    }
+
+    // Remove old trail points more efficiently
+    while (arr.length > 0 && now - arr[0].t > 0.4) arr.shift();
+
+    // Limit trail length for performance
+    if (arr.length > 15) arr.shift();
   }
 
   function drawTrail(ctx: CanvasRenderingContext2D) {
     const arr = trailRef.current;
     if (arr.length < 2) return;
+
+    const now = performance.now() / 1000;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+
     for (let i = arr.length - 1; i >= 0; i--) {
       const p = arr[i];
-      const age = performance.now() / 1000 - p.t;
-      const life = Math.min(1, age / 0.6);
-      const w = Math.min(14, Math.max(2, p.speed / 60));
+      const age = now - p.t;
+      const life = Math.min(1, age / 0.4);
+      const alpha = (1 - life) * 0.6;
+      const size = Math.max(1, (1 - life) * 6);
+
       ctx.beginPath();
       ctx.fillStyle = applyAlpha(
         theme === "neon"
-          ? "#00f7ff"
+          ? "#00ffff"
           : theme === "amber"
-          ? "#ffd86b"
-          : "#9effa6",
-        1 - life
+          ? "#ffaa00"
+          : "#00ff88",
+        alpha
       );
-      ctx.arc(p.x, p.y, Math.max(1, (1 - life) * w), 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
   }
 
   return (
@@ -566,6 +668,75 @@ export default function Pong() {
             Rotate your device to landscape for best play
           </div>
         </div>
+      )}
+
+      {isMobile && (
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 20px",
+            background: "rgba(0, 0, 0, 0.8)",
+            borderTop: "2px solid #00ffff",
+            zIndex: 1000,
+          }}
+        >
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <Button
+              variant="contained"
+              size="large"
+              onTouchStart={() => (keysRef.current["ArrowUp"] = true)}
+              onTouchEnd={() => (keysRef.current["ArrowUp"] = false)}
+              onMouseDown={() => (keysRef.current["ArrowUp"] = true)}
+              onMouseUp={() => (keysRef.current["ArrowUp"] = false)}
+              sx={{
+                minWidth: 60,
+                minHeight: 40,
+                fontSize: "12px",
+                background: "#003333",
+                border: "1px solid #00ffff",
+                color: "#00ffff",
+              }}
+            >
+              ↑
+            </Button>
+            <Button
+              variant="contained"
+              size="large"
+              onTouchStart={() => (keysRef.current["ArrowDown"] = true)}
+              onTouchEnd={() => (keysRef.current["ArrowDown"] = false)}
+              onMouseDown={() => (keysRef.current["ArrowDown"] = true)}
+              onMouseUp={() => (keysRef.current["ArrowDown"] = false)}
+              sx={{
+                minWidth: 60,
+                minHeight: 40,
+                fontSize: "12px",
+                background: "#003333",
+                border: "1px solid #00ffff",
+                color: "#00ffff",
+              }}
+            >
+              ↓
+            </Button>
+          </Box>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "#00ffff",
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: "8px",
+              textAlign: "center",
+            }}
+          >
+            Touch controls
+          </Typography>
+        </Box>
       )}
 
       <Box
