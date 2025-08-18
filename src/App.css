@@ -1,350 +1,491 @@
 :root {
-  /* neon-retro palette */
-  --bg: #030014; /* very dark */
-  --panel: #060016;
-  --neon-cyan: #00f7ff;
-  --neon-magenta: #ff4db8;
-  --neon-yellow: #fff25c;
-  --muted: #9fb1c5;
-  --text: #e8faff; /* high contrast */
-  --glass: rgba(255, 255, 255, 0.03);
-  --card-shadow: 0 12px 48px rgba(2, 8, 23, 0.7);
+  /* 80s Arcade Color Palette */
+  --bg-deep: #000408;
+  --bg-dark: #0a0a1a;
+  --neon-cyan: #00ffff;
+  --neon-magenta: #ff0080;
+  --neon-yellow: #ffff00;
+  --neon-green: #00ff00;
+  --neon-orange: #ff8000;
+  --neon-pink: #ff40ff;
+  --neon-blue: #4080ff;
+  --text-primary: #ffffff;
+  --text-secondary: #c0c0c0;
+  --text-muted: #808080;
+  --screen-green: #00ff41;
+  --warning-red: #ff2040;
 }
 
-/* App shell */
-.app {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial;
-  color: var(--text);
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* center vertically */
-  gap: 12px;
-  min-height: 100vh;
-  background: radial-gradient(
-      800px 400px at 10% 10%,
-      rgba(0, 87, 120, 0.08),
-      transparent 10%
-    ),
-    linear-gradient(180deg, var(--bg), #040814 120%);
-}
+/* Remove all previous styles and start fresh with 80s arcade aesthetic */
 
-.app h1 {
-  margin: 0;
-  letter-spacing: 1px;
-  color: var(--neon-magenta);
-  text-shadow: 0 6px 18px rgba(255, 77, 184, 0.18), 0 2px 0 rgba(0, 0, 0, 0.6);
-  font-size: clamp(1.2rem, 3.2vw, 2rem);
-}
-
-/* controls layout */
-.controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  width: min(100%, 980px);
-  justify-content: space-between;
-}
-
-.difficulty {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.difficulty label {
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.buttons {
-  display: flex;
-  gap: 8px;
-}
-.buttons button {
-  padding: 0.5rem 0.9rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.5),
-    rgba(255, 255, 255, 0.02)
-  );
-  color: var(--neon-cyan);
-  font-weight: 700;
-  box-shadow: 0 6px 30px rgba(0, 255, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, color 120ms ease;
-}
-.buttons button:hover {
-  transform: translateY(-2px);
-  color: var(--neon-yellow);
-  box-shadow: 0 16px 48px rgba(255, 77, 184, 0.06);
-}
-
-/* responsive canvas wrapper - centers and keeps aspect */
-.canvas-wrap {
-  width: 100%;
-  max-width: 1200px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  /* Limit the canvas container height so it fits inside the viewport (header + footer reserved) */
-  max-height: calc(100vh - 160px);
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-canvas {
-  /* Default: allow the canvas to size responsively without causing horizontal overflow.
-    Height is chosen to fit within available viewport height while also respecting width. */
-  width: auto;
-  height: min(calc(100vh - 160px), calc((100vw - 40px) * 9 / 16));
-  max-width: 100%;
-  max-height: 100%;
-  aspect-ratio: 16/9;
-  background: linear-gradient(180deg, rgba(6, 0, 24, 0.6), rgba(2, 0, 10, 0.9));
-  border-radius: 10px;
-  box-shadow: 0 20px 60px rgba(0, 77, 120, 0.12), 0 8px 30px rgba(2, 8, 23, 0.6);
-  display: block;
-  border: 1px solid rgba(255, 77, 184, 0.06);
-}
-
-.legend {
-  width: min(100%, 980px);
-  color: var(--muted);
-  font-size: 0.95rem;
-  text-align: left;
-}
-
-/* Scoreboard */
-.scoreboard {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  padding: 10px 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.02),
-    rgba(0, 0, 0, 0.06)
-  );
-  border-radius: 10px;
-  margin-bottom: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.02);
-}
-.score {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 56px;
-}
-.score .label {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.score .value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.score-sep {
-  color: var(--muted);
-  font-weight: 700;
-}
-
-/* Palette selector */
-.palette {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.palette-label {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-.palette-toggle {
-  display: flex;
-  gap: 6px;
-}
-.palette-toggle button {
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-}
-.palette-toggle button.active {
-  color: var(--text);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  transform: translateY(-2px);
-}
-
-/* Theme overrides */
-.theme-neon {
-  --neon-cyan: #00f7ff;
-  --neon-magenta: #ff4db8;
-  --neon-yellow: #fff25c;
-}
-.theme-amber {
-  --neon-cyan: #ffd86b;
-  --neon-magenta: #ffb86b;
-  --neon-yellow: #ffe9a6;
-}
-.theme-green {
-  --neon-cyan: #9effa6;
-  --neon-magenta: #4df2a6;
-  --neon-yellow: #caffd4;
-}
-
-/* Apply theme to scoreboard accents */
-.theme-neon .score .value {
-  color: var(--neon-cyan);
-}
-.theme-amber .score .value {
-  color: var(--neon-cyan);
-}
-.theme-green .score .value {
-  color: var(--neon-cyan);
-}
-
-/* mobile: encourage landscape for gameplay and reflow controls */
-@media (max-width: 720px) {
-  .app {
-    padding: 12px;
-  }
-  .controls {
-    flex-direction: row;
-    gap: 10px;
-  }
-  .legend {
-    font-size: 0.9rem;
-  }
-  /* On small screens, reduce the reserved header/footer space so canvas can be bigger */
-  .canvas-wrap {
-    max-height: calc(100vh - 112px);
-    padding: 6px;
-  }
-}
-
-/* If device is small and in portrait orientation, show a 'best in landscape' hint */
-@media (max-width: 720px) and (orientation: portrait) {
-  .legend::after {
-    content: " — best in landscape";
-    color: var(--muted);
-    margin-left: 8px;
-  }
-}
-
-/* small tweaks for very small screens */
-@media (max-width: 420px) {
-  .controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .buttons {
-    justify-content: space-between;
-  }
-
-  /* further limit canvas on very small devices */
-  .canvas-wrap {
-    max-height: calc(100vh - 96px);
-  }
-}
-
-/* Mobile rotate overlay (only show on small portrait screens) */
-.mobile-rotate-overlay {
-  display: none; /* default hidden */
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 1600;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--text);
-  padding: 20px;
-}
-.mobile-rotate-overlay .rotate-inner {
-  background: rgba(255, 255, 255, 0.04);
-  padding: 16px 20px;
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
-}
-@media (max-width: 720px) and (orientation: portrait) {
-  .mobile-rotate-overlay {
-    display: flex;
-  }
-}
-
-/* Prevent horizontal overflow from the page */
-html,
-body {
-  overflow-x: hidden;
-}
-
-/* When in small landscape, force the canvas to fit the available height and shrink width accordingly */
-.canvas-wrap.landscape-fit {
-  width: 100%;
-  max-width: none;
-  padding: 4px;
-}
-.canvas-wrap.landscape-fit canvas {
-  height: calc(
-    100vh - 88px
-  ); /* leave space for a small top bar and bottom controls */
-  width: auto;
-  max-width: 100%;
-  aspect-ratio: 16/9;
-}
-
-/* bottom control bar on small landscape */
-.mobile-bottom-controls {
-  background: rgba(2, 6, 24, 0.6);
-  border-radius: 12px;
-  padding: 6px 8px;
-  backdrop-filter: blur(6px);
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* side controls for small landscape */
-.side-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-  color: var(--text);
+/* Main Arcade Screen Container */
+.arcade-screen {
   position: relative;
-  width: 56px;
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-.side-controls.left {
-  margin-right: 6px;
-}
-.side-controls.right {
-  margin-left: 6px;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(0, 255, 255, 0.03) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 80%,
+      rgba(255, 0, 128, 0.02) 0%,
+      transparent 50%
+    ),
+    linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-dark) 100%);
+  color: var(--text-primary);
+  font-family: "Press Start 2P", monospace;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
 }
 
-.canvas-wrap.reduced-width {
-  max-width: calc(100vw - 140px);
+/* CRT Monitor Effects */
+.crt-scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 255, 0, 0.02) 2px,
+    rgba(0, 255, 0, 0.02) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
 }
 
-/* Add extra top/bottom padding for small landscape so the playfield is fully visible */
-@media (max-width: 720px) and (orientation: landscape) {
-  .canvas-wrap.landscape-fit {
-    padding-top: 12px;
-    padding-bottom: 12px;
+.crt-flicker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 98%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  animation: flicker 0.15s infinite alternate;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.screen-glow {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  right: -10%;
+  bottom: -10%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 255, 255, 0.05) 0%,
+    rgba(255, 0, 128, 0.03) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.98;
   }
 }
 
-/* stronger score pop: handled on canvas draw by scaling and added glow using shadow */
-.score-glow {
-  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.15));
+/* Header Section */
+.arcade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  max-width: 1000px;
+  margin-bottom: 3rem;
+  padding: 1rem 2rem;
+  border: 2px solid var(--neon-cyan);
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 255, 0.05) 0%,
+    rgba(255, 0, 128, 0.05) 100%
+  );
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+    inset 0 0 20px rgba(0, 255, 255, 0.1);
 }
+
+.title-glow {
+  text-align: center;
+}
+
+.arcade-title {
+  font-family: "Audiowide", "Press Start 2P", monospace;
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: 900;
+  margin: 0;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan),
+    0 0 40px var(--neon-cyan), 0 0 80px var(--neon-cyan);
+  animation: title-pulse 2s ease-in-out infinite alternate;
+  letter-spacing: 0.2em;
+}
+
+.subtitle {
+  font-size: clamp(0.6rem, 2vw, 1rem);
+  color: var(--neon-magenta);
+  text-shadow: 0 0 5px var(--neon-magenta), 0 0 10px var(--neon-magenta);
+  margin-top: 0.5rem;
+  letter-spacing: 0.3em;
+}
+
+.credits {
+  text-align: right;
+  font-size: clamp(0.5rem, 1.5vw, 0.8rem);
+}
+
+.credit-text {
+  color: var(--neon-yellow);
+  text-shadow: 0 0 5px var(--neon-yellow), 0 0 10px var(--neon-yellow);
+  margin-bottom: 0.5rem;
+}
+
+.insert-coin {
+  color: var(--neon-green);
+  text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green);
+  animation: blink 1s infinite;
+}
+
+@keyframes title-pulse {
+  0% {
+    text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan),
+      0 0 40px var(--neon-cyan), 0 0 80px var(--neon-cyan);
+  }
+  100% {
+    text-shadow: 0 0 15px var(--neon-cyan), 0 0 25px var(--neon-cyan),
+      0 0 50px var(--neon-cyan), 0 0 100px var(--neon-cyan);
+  }
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* Game List */
+.game-list {
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--neon-green);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 1rem;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.2),
+    inset 0 0 30px rgba(0, 255, 0, 0.05);
+}
+
+.game-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 20, 40, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-size: clamp(0.6rem, 2vw, 1rem);
+}
+
+.game-item:hover {
+  background: rgba(0, 40, 80, 0.8);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3),
+    inset 0 0 15px rgba(0, 255, 255, 0.1);
+}
+
+.game-item.selected {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 0, 128, 0.2) 0%,
+    rgba(0, 255, 255, 0.2) 100%
+  );
+  border: 2px solid var(--neon-magenta);
+  box-shadow: 0 0 20px rgba(255, 0, 128, 0.5),
+    inset 0 0 20px rgba(255, 0, 128, 0.2);
+  color: var(--text-primary);
+}
+
+.game-item.selected.flashing {
+  animation: selection-flash 0.5s ease-in-out;
+}
+
+.game-item.coming-soon {
+  opacity: 0.6;
+  background: rgba(40, 20, 0, 0.6);
+  border-color: var(--warning-red);
+  cursor: not-allowed;
+}
+
+.game-number {
+  font-family: "Russo One", monospace;
+  font-size: 1.5em;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 5px var(--neon-yellow), 0 0 10px var(--neon-yellow);
+  min-width: 3rem;
+  text-align: center;
+}
+
+.game-info {
+  flex: 1;
+  margin-left: 2rem;
+}
+
+.game-title {
+  font-family: "Bungee", "Press Start 2P", monospace;
+  font-size: 1.2em;
+  color: var(--text-primary);
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5),
+    0 0 10px rgba(255, 255, 255, 0.3);
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.1em;
+}
+
+.game-year {
+  font-size: 0.7em;
+  color: var(--text-secondary);
+  font-family: "Press Start 2P", monospace;
+}
+
+.game-status {
+  min-width: 4rem;
+  text-align: center;
+}
+
+.ready-indicator {
+  color: var(--neon-green);
+  font-size: 1.5em;
+  text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+  animation: pulse-green 2s ease-in-out infinite alternate;
+}
+
+.coming-soon-text {
+  color: var(--warning-red);
+  font-size: 0.7em;
+  text-shadow: 0 0 5px var(--warning-red), 0 0 10px var(--warning-red);
+}
+
+.hidden-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-decoration: none;
+  color: transparent;
+}
+
+@keyframes selection-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 0, 128, 0.5),
+      inset 0 0 20px rgba(255, 0, 128, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.8),
+      inset 0 0 40px rgba(0, 255, 255, 0.4);
+  }
+}
+
+@keyframes pulse-green {
+  0% {
+    text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+  }
+  100% {
+    text-shadow: 0 0 15px var(--neon-green), 0 0 30px var(--neon-green),
+      0 0 40px var(--neon-green);
+  }
+}
+
+/* Instructions */
+.arcade-instructions {
+  display: flex;
+  gap: 3rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+  font-size: clamp(0.5rem, 1.5vw, 0.8rem);
+}
+
+.instruction-line {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text-secondary);
+}
+
+.key {
+  color: var(--neon-orange);
+  text-shadow: 0 0 5px var(--neon-orange), 0 0 10px var(--neon-orange);
+  font-weight: bold;
+  min-width: 4rem;
+  text-align: center;
+  border: 1px solid var(--neon-orange);
+  padding: 0.3rem 0.5rem;
+  background: rgba(255, 128, 0, 0.1);
+}
+
+.action {
+  color: var(--text-secondary);
+}
+
+/* High Score Ticker */
+.high-score-ticker {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
+  right: 0;
+  height: 2rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid var(--neon-yellow);
+  border-bottom: 1px solid var(--neon-yellow);
+  display: flex;
+  align-items: center;
+}
+
+.ticker-content {
+  white-space: nowrap;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 5px var(--neon-yellow), 0 0 10px var(--neon-yellow);
+  font-size: 0.8rem;
+  animation: ticker-scroll 30s linear infinite;
+  padding-left: 100%;
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .arcade-header {
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .credits {
+    text-align: center;
+  }
+
+  .arcade-instructions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .game-item {
+    padding: 0.8rem 1rem;
+    font-size: 0.7rem;
+  }
+
+  .game-number {
+    font-size: 1.2em;
+    min-width: 2.5rem;
+  }
+
+  .game-info {
+    margin-left: 1rem;
+  }
+
+  .game-title {
+    font-size: 1em;
+  }
+}
+
+@media (max-width: 480px) {
+  .arcade-title {
+    font-size: 1.5rem;
+  }
+
+  .game-list {
+    width: 95%;
+    padding: 0.5rem;
+  }
+
+  .game-item {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.6rem;
+  }
+
+  .ticker-content {
+    font-size: 0.6rem;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (orientation: landscape) and (max-height: 600px) {
+  .arcade-header {
+    margin-bottom: 1rem;
+  }
+
+  .arcade-instructions {
+    margin-bottom: 1rem;
+  }
+
+  .high-score-ticker {
+    bottom: 0.5rem;
+  }
+}
+
+/* Ensure no previous styles interfere */
+.app,
+.neon-grid,
+.neon-scanline,
+.arcade-cabinet,
+.cabinet-top,
+.cabinet-body,
+.cabinet-bezel,
+.cabinet-screen,
+.cabinet-controls,
+.joystick,
+.buttons,
+.carousel-viewport,
+.carousel-frame,
+.carousel-nav,
+.carousel-dots,
+.card-wrap,
+.game-grid {
+  display: none !important;
+}
+
+/* Override any Material-UI styles that might conflict */
+.MuiCard-root,
+.MuiCardContent-root,
+.MuiCardActions-root,
+.MuiButton-root {
+  display: none !important;
+}
+
+/* Keep existing game-specific styles for individual games */
