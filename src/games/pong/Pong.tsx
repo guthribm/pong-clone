@@ -63,6 +63,7 @@ export default function Pong() {
 
   // Play state
   const [running, setRunning] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("Normal");
   const scoreLeftRef = useRef(0);
   const scoreRightRef = useRef(0);
@@ -208,6 +209,7 @@ export default function Pong() {
 
   function start() {
     if (running) return;
+    setGameStarted(true);
     setRunning(true);
     runningRef.current = true;
     lastTimeRef.current = null;
@@ -779,8 +781,93 @@ export default function Pong() {
           className={`canvas-wrap ${
             isSmallLandscape ? "landscape-fit reduced-width" : ""
           }`}
+          style={{ position: "relative" }}
         >
-          <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            onClick={() => !gameStarted && start()}
+            style={{ cursor: !gameStarted ? "pointer" : "default" }}
+          />
+
+          {!gameStarted && (
+            <Box
+              onClick={start}
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0, 0, 0, 0.9)",
+                zIndex: 10,
+                color: "#00ff00",
+                textAlign: "center",
+                cursor: "pointer",
+              }}
+            >
+              <Typography
+                variant="h4"
+                sx={{
+                  mb: 3,
+                  fontSize: { xs: "1.5rem", sm: "2rem" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  textShadow: "0 0 10px #00ff00",
+                }}
+              >
+                PONG
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  mb: 4,
+                  fontSize: { xs: "0.6rem", sm: "0.8rem" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  color: "#ffffff",
+                  maxWidth: "80%",
+                  lineHeight: 1.6,
+                }}
+              >
+                Classic arcade tennis for two players!
+                <br />
+                Tap anywhere on the game area to start!
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<PlayArrow />}
+                onClick={start}
+                sx={{
+                  fontSize: { xs: "0.7rem", sm: "0.9rem" },
+                  padding: { xs: "8px 16px", sm: "12px 24px" },
+                  fontFamily: "'Press Start 2P', monospace",
+                  background: "linear-gradient(45deg, #00ff00, #00aa00)",
+                  boxShadow: "0 0 20px rgba(0, 255, 0, 0.5)",
+                }}
+              >
+                START GAME
+              </Button>
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 3,
+                  fontSize: { xs: "0.4rem", sm: "0.5rem" },
+                  color: "#888",
+                  fontFamily: "'Press Start 2P', monospace",
+                  textAlign: "center",
+                }}
+              >
+                {isMobile
+                  ? "Touch and drag to move your paddle"
+                  : "Move mouse or use ↑ ↓ arrow keys"}
+              </Typography>
+            </Box>
+          )}
         </div>
 
         {isSmallLandscape && (

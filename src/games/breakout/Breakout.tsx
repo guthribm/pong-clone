@@ -16,7 +16,7 @@ import PlayArrow from "@mui/icons-material/PlayArrow";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme as useMuiTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import { resetBall, bumpSpeed, clamp } from "../../game";
+import { bumpSpeed, clamp } from "../../game";
 import type { Ball } from "../../game";
 
 type BrickType = "normal" | "strong" | "unbreakable";
@@ -30,7 +30,7 @@ type Brick = {
   type: BrickType;
 };
 
-const CANVAS_ASPECT = 16 / 9;
+const CANVAS_ASPECT = 3 / 4; // More vertical like classic Breakout (3:4 ratio)
 
 export default function Breakout() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -88,24 +88,38 @@ export default function Breakout() {
     let width, height;
     if (isMobile) {
       if (isLandscape) {
-        // Landscape mobile - use most of screen height
-        width = Math.min(
-          rect.width - 20,
-          window.innerHeight * 0.7 * CANVAS_ASPECT
-        );
-        height = Math.min(rect.height - 20, window.innerHeight * 0.7);
+        // Landscape mobile - use height-based sizing
+        height = Math.min(rect.height - 40, window.innerHeight * 0.7);
+        width = height * CANVAS_ASPECT;
+        // Ensure it fits in screen width
+        if (width > window.innerWidth * 0.9) {
+          width = window.innerWidth * 0.9;
+          height = width / CANVAS_ASPECT;
+        }
       } else {
-        // Portrait mobile - use most of screen width
-        width = Math.min(rect.width - 20, window.innerWidth * 0.95);
-        height = Math.min(
-          rect.height - 20,
-          (window.innerWidth * 0.95) / CANVAS_ASPECT
-        );
+        // Portrait mobile - use width-based sizing
+        width = Math.min(rect.width - 20, window.innerWidth * 0.9);
+        height = width / CANVAS_ASPECT;
+        // Ensure it fits in available height
+        if (height > rect.height - 40) {
+          height = rect.height - 40;
+          width = height * CANVAS_ASPECT;
+        }
       }
     } else {
-      // Desktop - maintain aspect ratio
-      width = Math.floor(rect.width);
-      height = Math.floor(rect.width / CANVAS_ASPECT);
+      // Desktop - use available space with proper aspect ratio
+      const maxWidth = rect.width - 20;
+      const maxHeight = rect.height - 20;
+
+      // Try width-constrained first
+      width = maxWidth;
+      height = width / CANVAS_ASPECT;
+
+      // If too tall, constrain by height
+      if (height > maxHeight) {
+        height = maxHeight;
+        width = height * CANVAS_ASPECT;
+      }
     }
 
     canvas.style.width = `${width}px`;
@@ -116,7 +130,7 @@ export default function Breakout() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function buildLevel(canvasW: number, lvl = 1) {
+  function buildLevel(canvasW: number, canvasH: number, lvl = 1) {
     // scale rows/cols with level
     const baseCols = 10;
     const cols = baseCols;
@@ -124,6 +138,12 @@ export default function Breakout() {
     const padding = 8;
     const brickW = (canvasW - padding * (cols + 1)) / cols;
     const brickH = Math.max(18, 22 - Math.floor(lvl / 2));
+
+    // Position bricks in the top 1/3 of the screen, starting well below the UI
+    const startY = canvasH * 0.15; // Start at 15% down from top
+    const brickAreaHeight = canvasH * 0.25; // Use 25% of screen height for bricks
+    const rowSpacing = brickAreaHeight / rows;
+
     const bricks: Brick[] = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -140,7 +160,7 @@ export default function Breakout() {
         }
         bricks.push({
           x: padding + c * (brickW + padding),
-          y: padding + r * (brickH + padding) + 20,
+          y: startY + r * rowSpacing,
           w: brickW,
           h: brickH,
           hits,
@@ -154,11 +174,19 @@ export default function Breakout() {
 
   function resetGame(canvasW: number, canvasH: number) {
     paddleRef.current.w = Math.max(72, Math.min(220, canvasW * 0.14));
-    paddleRef.current.h = Math.max(12, canvasH * 0.03);
+    paddleRef.current.h = Math.max(12, canvasH * 0.02);
     paddleRef.current.x = (canvasW - paddleRef.current.w) / 2;
-    paddleRef.current.y = canvasH - paddleRef.current.h - 12;
+    // Position paddle much lower - at 85% down the screen
+    paddleRef.current.y = canvasH * 0.85;
     ballRef.current.r = Math.max(6, Math.min(14, canvasW * 0.008));
-    resetBall(ballRef.current as Ball, canvasW, canvasH, null);
+
+    // Custom ball positioning for Breakout - start at 70% down the screen
+    ballRef.current.x = canvasW / 2;
+    ballRef.current.y = canvasH * 0.7;
+    ballRef.current.vx = 200 + Math.random() * 100; // Random horizontal speed
+    ballRef.current.vy = -250 - Math.random() * 100; // Always start going up
+    if (Math.random() < 0.5) ballRef.current.vx *= -1; // Random direction
+
     setScore(0);
     setLives(3);
     setGameStarted(false);
@@ -168,22 +196,23 @@ export default function Breakout() {
     powerUpsRef.current = [];
     activeEffectsRef.current = {};
     setLevel(1);
-    // primary ball
+
+    // primary ball for multi-ball system
     const primary: Ball = {
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0,
+      x: canvasW / 2,
+      y: canvasH * 0.7,
+      vx: ballRef.current.vx,
+      vy: ballRef.current.vy,
       r: Math.max(6, Math.min(14, canvasW * 0.008)),
     };
-    resetBall(primary, canvasW, canvasH, null);
     ballsRef.current = [primary];
+
     // easy difficulty starts with multiball active
     if (difficulty === "Easy") {
       // spawn two extra balls
       spawnMultiBalls(primary, 2);
     }
-    buildLevel(canvasW, 1);
+    buildLevel(canvasW, canvasH, 1);
   }
 
   useEffect(() => {
@@ -417,27 +446,16 @@ export default function Breakout() {
         setRunning(false);
         resetGame(w, h);
       } else {
+        // Spawn a new ball at proper Breakout position
         const nb: Ball = {
-          x: 0,
-          y: 0,
-          vx: 0,
-          vy: 0,
+          x: w / 2,
+          y: h * 0.7,
+          vx: 200 + Math.random() * 100,
+          vy: -250 - Math.random() * 100,
           r: Math.max(6, Math.min(14, w * 0.008)),
         };
-        resetBall(nb, w, h, null);
+        if (Math.random() < 0.5) nb.vx *= -1; // Random direction
         ballsRef.current = [nb];
-      }
-    }
-
-    // lost life
-    if (ballRef.current.y - ballRef.current.r > h) {
-      setLives((l) => l - 1);
-      if (lives - 1 <= 0) {
-        setRunning(false);
-        // reset game after loss
-        resetGame(w, h);
-      } else {
-        resetBall(ballRef.current as Ball, w, h, null);
       }
     }
 
@@ -510,9 +528,18 @@ export default function Breakout() {
       // next level
       const next = level + 1;
       setLevel(next);
-      buildLevel(w, next);
-      // reset ball to center
-      resetBall(ballRef.current as Ball, w, h, null);
+      buildLevel(w, h, next);
+      // reset ball to proper Breakout position
+      const newBall: Ball = {
+        x: w / 2,
+        y: h * 0.7,
+        vx: 200 + Math.random() * 100,
+        vy: -250 - Math.random() * 100,
+        r: ballRef.current.r,
+      };
+      if (Math.random() < 0.5) newBall.vx *= -1;
+      ballRef.current = newBall;
+      ballsRef.current = [newBall];
       spawnParticles(w / 2, h / 2, 36);
     }
   }
@@ -649,7 +676,7 @@ export default function Breakout() {
     ctx.shadowBlur = 6;
     ctx.shadowColor = "#00ff00";
 
-    // Score and level display
+    // Score and level display - position them at the top
     ctx.fillText(`SCORE: ${score.toString().padStart(6, "0")}`, 10, 25);
     ctx.fillText(`LEVEL: ${level}`, 10, 45);
     ctx.fillText(`LIVES: ${lives}`, 10, 65);
@@ -693,10 +720,7 @@ export default function Breakout() {
     }
     function onKey(e: KeyboardEvent) {
       if (!gameStarted) {
-        if (e.key === " " || e.key === "Enter") {
-          startGame();
-        }
-        return;
+        return; // Remove keyboard start, only allow click/tap to start
       }
 
       const rect = canvas.getBoundingClientRect();
@@ -819,6 +843,7 @@ export default function Breakout() {
         >
           {!gameStarted && (
             <Box
+              onClick={startGame}
               sx={{
                 position: "absolute",
                 top: 0,
@@ -833,6 +858,7 @@ export default function Breakout() {
                 zIndex: 10,
                 color: "#00ffff",
                 textAlign: "center",
+                cursor: "pointer",
               }}
             >
               <Typography
@@ -857,9 +883,8 @@ export default function Breakout() {
                 }}
               >
                 Break all the bricks to advance to the next level!
-                {isMobile
-                  ? " Tap to move paddle and start!"
-                  : " Use mouse or arrow keys to move paddle."}
+                <br />
+                Tap anywhere on the game area to start!
               </Typography>
               <Button
                 variant="contained"
@@ -876,19 +901,20 @@ export default function Breakout() {
               >
                 START GAME
               </Button>
-              {!isMobile && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    mt: 3,
-                    fontSize: "0.6rem",
-                    color: "#888",
-                    fontFamily: "'Press Start 2P', monospace",
-                  }}
-                >
-                  Press SPACE or ENTER to start
-                </Typography>
-              )}
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 3,
+                  fontSize: { xs: "0.5rem", sm: "0.6rem" },
+                  color: "#888",
+                  fontFamily: "'Press Start 2P', monospace",
+                  textAlign: "center",
+                }}
+              >
+                {isMobile
+                  ? "Touch and drag to move paddle"
+                  : "Move mouse or use ← → arrow keys"}
+              </Typography>
             </Box>
           )}
 
@@ -903,11 +929,13 @@ export default function Breakout() {
           >
             <canvas
               ref={canvasRef}
+              onClick={() => !gameStarted && startGame()}
               style={{
                 touchAction: "none",
                 maxWidth: "100%",
                 maxHeight: "100%",
                 display: "block",
+                cursor: !gameStarted ? "pointer" : "default",
               }}
             />
           </Box>

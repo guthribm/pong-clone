@@ -634,12 +634,7 @@ export default function Tetris() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (!gameStarted) {
-        if (e.key === " " || e.key === "Enter") {
-          startGame();
-        }
-        return;
-      }
+      if (!gameStarted) return;
 
       if (e.key === "ArrowLeft") move(-1);
       else if (e.key === "ArrowRight") move(1);
@@ -651,7 +646,7 @@ export default function Tetris() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [gameStarted]);
+  });
 
   return (
     <Box
@@ -739,6 +734,7 @@ export default function Tetris() {
         >
           {!gameStarted && (
             <Box
+              onClick={startGame}
               sx={{
                 position: "absolute",
                 top: 0,
@@ -753,6 +749,7 @@ export default function Tetris() {
                 zIndex: 10,
                 color: "#00ff00",
                 textAlign: "center",
+                cursor: "pointer",
               }}
             >
               <Typography
@@ -777,9 +774,9 @@ export default function Tetris() {
                   lineHeight: 1.6,
                 }}
               >
-                {isMobile
-                  ? "Arrange falling blocks to clear lines!"
-                  : "Use arrow keys to move and rotate pieces. Clear lines to score!"}
+                Arrange falling blocks to clear lines!
+                <br />
+                Tap anywhere on the game area to start!
               </Typography>
               <Button
                 variant="contained"
@@ -796,31 +793,20 @@ export default function Tetris() {
               >
                 START GAME
               </Button>
-              {!isMobile && (
-                <Box sx={{ mt: 3, fontSize: "0.5rem", color: "#888" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontFamily: "'Press Start 2P', monospace",
-                      fontSize: "0.4rem",
-                      display: "block",
-                      mb: 1,
-                    }}
-                  >
-                    Controls: ← → ↑ ↓ Arrow Keys
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontFamily: "'Press Start 2P', monospace",
-                      fontSize: "0.4rem",
-                      display: "block",
-                    }}
-                  >
-                    Space: Hard Drop | C: Hold | P: Pause
-                  </Typography>
-                </Box>
-              )}
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 3,
+                  fontSize: { xs: "0.4rem", sm: "0.5rem" },
+                  color: "#888",
+                  fontFamily: "'Press Start 2P', monospace",
+                  textAlign: "center",
+                }}
+              >
+                {isMobile
+                  ? "Tap buttons below to control pieces"
+                  : "Controls: ← → ↑ ↓ Arrow Keys | Space: Hard Drop | C: Hold | P: Pause"}
+              </Typography>
             </Box>
           )}
 
@@ -836,11 +822,13 @@ export default function Tetris() {
           >
             <canvas
               ref={canvasRef}
+              onClick={() => !gameStarted && startGame()}
               style={{
                 touchAction: "none",
                 maxWidth: "100%",
                 height: "100%",
                 display: "block",
+                cursor: !gameStarted ? "pointer" : "default",
               }}
             />
           </Box>
