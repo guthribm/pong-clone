@@ -311,3 +311,40 @@ body {
   align-items: center;
   justify-content: space-between;
 }
+
+/* side controls for small landscape */
+.side-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  position: relative;
+  width: 56px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.side-controls.left {
+  margin-right: 6px;
+}
+.side-controls.right {
+  margin-left: 6px;
+}
+
+.canvas-wrap.reduced-width {
+  max-width: calc(100vw - 140px);
+}
+
+/* Add extra top/bottom padding for small landscape so the playfield is fully visible */
+@media (max-width: 720px) and (orientation: landscape) {
+  .canvas-wrap.landscape-fit {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+}
+
+/* stronger score pop: handled on canvas draw by scaling and added glow using shadow */
+.score-glow {
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.15));
+}
