@@ -8,6 +8,7 @@ export default function App() {
     { title: "PONG", to: "/pong", year: "1972", ready: true },
     { title: "BREAKOUT", to: "/breakout", year: "1976", ready: true },
     { title: "TETRIS", to: "/tetris", year: "1984", ready: true },
+    { title: "GALAGA", to: "/galaga", year: "1981", ready: true },
     { title: "SNAKE", to: undefined, year: "1976", ready: false },
     { title: "SPACE INVADERS", to: undefined, year: "1978", ready: false },
     { title: "PAC-MAN", to: undefined, year: "1980", ready: false },
@@ -140,7 +141,8 @@ export default function App() {
       <div className="high-score-ticker">
         <div className="ticker-content">
           ★ HIGH SCORES ★ PONG: 12,450 ★ BREAKOUT: 8,760 ★ TETRIS: 156,890 ★
-          COMING SOON: SNAKE, SPACE INVADERS, PAC-MAN ★ HIGH SCORES ★
+          GALAGA: 245,300 ★ COMING SOON: SNAKE, SPACE INVADERS, PAC-MAN ★ HIGH
+          SCORES ★
         </div>
       </div>
     </Box>

@@ -6,6 +6,7 @@ import React, { Suspense } from "react";
 const Pong = React.lazy(() => import("./games/pong/Pong"));
 const Breakout = React.lazy(() => import("./games/breakout/Breakout"));
 const Tetris = React.lazy(() => import("./games/tetris/Tetris"));
+const Galaga = React.lazy(() => import("./games/galaga/Galaga"));
 
 // MUI theme setup
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
@@ -33,6 +34,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/pong" element={<Pong />} />
             <Route path="/breakout" element={<Breakout />} />
             <Route path="/tetris" element={<Tetris />} />
+            <Route path="/galaga" element={<Galaga />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
